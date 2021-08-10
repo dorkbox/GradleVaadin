@@ -17,9 +17,10 @@ internal class VariantComputer @JvmOverloads constructor(
     }
 
     fun computeNodeDir(nodeExtension: NodeExtension): Provider<Directory> {
-        return zip(nodeExtension.workDir, nodeExtension.version).map { (workDir, _) ->
-            workDir
-        }
+        return nodeExtension.workDir.map { it }
+//        return zip(nodeExtension.workDir, nodeExtension.version).map { (workDir, _) ->
+//            workDir
+//        }
     }
 
     fun computeNodeBinDir(nodeDirProvider: Provider<Directory>) = computeProductBinDir(nodeDirProvider)

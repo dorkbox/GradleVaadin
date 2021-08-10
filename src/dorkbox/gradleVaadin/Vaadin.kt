@@ -15,6 +15,14 @@
  */
 package dorkbox.gradleVaadin
 
+import com.vaadin.flow.function.SerializableFunction
+import com.vaadin.flow.server.Constants
+import com.vaadin.flow.server.frontend.FrontendUtils
+import com.vaadin.flow.server.frontend.JarContentsManager
+import com.vaadin.flow.server.frontend.TaskUpdateImports
+import com.vaadin.flow.server.frontend.scanner.ClassFinder
+import com.vaadin.flow.server.frontend.scanner.FrontendDependenciesScanner
+import dorkbox.gradleVaadin.node.deps.DependencyScanner
 import dorkbox.gradleVaadin.node.npm.proxy.ProxySettings
 import dorkbox.gradleVaadin.node.npm.task.NpmInstallTask
 import dorkbox.gradleVaadin.node.npm.task.NpmSetupTask
@@ -26,21 +34,15 @@ import dorkbox.gradleVaadin.node.variant.VariantComputer
 import dorkbox.gradleVaadin.node.yarn.task.YarnInstallTask
 import dorkbox.gradleVaadin.node.yarn.task.YarnSetupTask
 import dorkbox.gradleVaadin.node.yarn.task.YarnTask
-import com.vaadin.flow.server.Constants
-import com.vaadin.flow.server.frontend.FrontendUtils
-import com.vaadin.flow.server.frontend.scanner.FrontendDependenciesScanner
-import dorkbox.gradleVaadin.node.deps.DependencyScanner
 import elemental.json.Json
 import elemental.json.impl.JsonUtil
 import org.gradle.api.GradleException
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.SourceSetContainer
-import org.gradle.internal.impldep.org.bouncycastle.asn1.x500.style.RFC4519Style
 import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 import org.jetbrains.kotlin.gradle.internal.ensureParentDirsCreated
-import org.jetbrains.kotlin.gradle.targets.js.npm.packageJson
 import java.io.File
 
 /**
@@ -100,16 +102,10 @@ class Vaadin : Plugin<Project> {
 //
 //        }
 
-
-
-        val nodeSetup = project.tasks.named(NodeSetupTask.NAME).apply {
-
-        }
+        val nodeSetup = project.tasks.named(NodeSetupTask.NAME)
 
         project.tasks.create("compileResources-DEV").apply {
             dependsOn(nodeSetup, project.tasks.named("classes"))
-            mustRunAfter(nodeSetup)
-
             group = "vaadin"
             description = "Compile Vaadin resources for Development"
 
@@ -136,7 +132,6 @@ class Vaadin : Plugin<Project> {
 
         project.tasks.create("compileResources-PROD").apply {
             dependsOn(nodeSetup, project.tasks.named("classes"))
-            mustRunAfter(nodeSetup)
 
             group = "vaadin"
             description = "Compile Vaadin resources for Production"
@@ -151,81 +146,13 @@ class Vaadin : Plugin<Project> {
                 "${project.projectDir}/webpack.production.js"
             )
 
-            outputs.dir("${project.buildDir}/resources/META-INF/resources/VAADIN")
+            outputs.dir("${project.buildDir}/resources/main/META-INF/resources/VAADIN")
             outputs.dir("${project.buildDir}/node_modules")
 
             doLast {
-                println("work? $didWork")
+//                println("work? $didWork")
                 compileVaadinResources(project, true)
             }
-        }
-
-
-
-        // have to get the configuration extension data
-        // required to make sure the tasks run in the correct order
-        project.afterEvaluate {
-//            config.nodeFixer = FixNodeInstall(project, config)
-
-
-//            // fix the maven source jar
-//            val sourceJarTask = project.tasks.findByName("sourceJar") as Jar
-//            sourceJarTask.apply {
-//                val sourceSets = project.extensions.getByName("sourceSets") as org.gradle.api.tasks.SourceSetContainer
-//                val mainSourceSet: SourceSet = sourceSets.getByName("main")
-//
-//                // want to included java + kotlin for the sources
-//
-//                // kotlin stuff. Sometimes kotlin depends on java files, so the kotlin sourcesets have BOTH java + kotlin.
-//                // we want to make sure to NOT have both, as it will screw up creating the jar!
-//                try {
-//                    val kotlin = (mainSourceSet as org.gradle.api.internal.HasConvention)
-//                        .convention
-//                        .getPlugin(KotlinSourceSet::class.java)
-//                        .kotlin
-//
-//                    val srcDirs = kotlin.srcDirs
-//                    val kotlinFiles = kotlin.asFileTree.matching { it: PatternFilterable ->
-//                        // find out if this file (usually, just a java file) is ALSO in the java sourceset.
-//                        // this is to prevent DUPLICATES in the jar, because sometimes kotlin must be .kt + .java in order to compile!
-//                        val javaFiles = mainSourceSet.java.files.map { file ->
-//                            // by definition, it MUST be one of these
-//                            val base = srcDirs.first {
-//                                // find out WHICH src dir base path it is
-//                                val path = project.buildDir.relativeTo(it)
-//                                path.path.isNotEmpty()
-//                            }
-//                            file.relativeTo(base).path
-//                        }
-//
-//                        it.setExcludes(javaFiles)
-//                    }
-//
-//                    from(kotlinFiles)
-//                } catch (ignored: Exception) {
-//                    // maybe we don't have kotlin for the project
-//                }
-//
-//                // java stuff (it is compiled AFTER kotlin), and it is ALREADY included!
-//                // kotlin is always compiled first
-//                // from(mainSourceSet.java)
-//            }
-
-
-//            // output how much the time-outs are
-//            val durationString = config.httpTimeout.toString().substring(2)
-//                    .replace("(\\d[HMS])(?!$)", "$1 ").toLowerCase()
-//
-//
-//            val fullReleaseTimeout = Duration.ofMillis(config.retryDelay.toMillis() * config.retryLimit)
-//            val fullReleaseString = fullReleaseTimeout.toString().substring(2)
-//                    .replace("(\\d[HMS])(?!$)", "$1 ").toLowerCase()
-//
-//            project.tasks.findByName("publishToSonatype")?.doFirst {
-//                println("\tPublishing to Sonatype: ${config.groupId}:${config.artifactId}:${config.version}")
-//                println("\t\tSonatype HTTP timeout: $durationString")
-//                println("\t\tSonatype API timeout: $fullReleaseString")
-//            }
         }
 
         project.childProjects.values.forEach {
@@ -342,7 +269,7 @@ class Vaadin : Plugin<Project> {
         fun compileVaadinResources(project: Project, productionMode: Boolean) {
             val variantComputer = VariantComputer()
 
-            val config = project.extensions.getByName("vaadin") as VaadinConfig
+            val config = VaadinConfig[project]
             val nodeExtension = NodeExtension[project]
 
             val nodeDirProvider = variantComputer.computeNodeDir(nodeExtension)
@@ -372,10 +299,10 @@ class Vaadin : Plugin<Project> {
             val jsonPackageLockFile = buildDir.resolve("package-lock.json")
             val webPackFile = buildDir.resolve(FrontendUtils.WEBPACK_CONFIG)
             val webPackProdFile = buildDir.resolve("webpack.production.js")
-            val webPackExecutableFile = nodeModulesDir.resolve("webpack").resolve("bin").resolve("webpack.js").absoluteFile
 
             val generatedJsonPackageFile = generatedDir.resolve(Constants.PACKAGE_JSON)
-
+            val generatedNodeModules = buildDir.resolve(FrontendUtils.NODE_MODULES)
+            val webPackExecutableFile = generatedNodeModules.resolve("webpack").resolve("bin").resolve("webpack.js").absoluteFile
 
             val tokenFile: File
             val generatedFilesDir: File
@@ -537,7 +464,7 @@ class Vaadin : Plugin<Project> {
                     val updateResult = Updater.updateGeneratedPackageJsonDependencies(
                         packageJson,
                         frontendDependencies.packages,
-                        jsonPackageFile, generatedJsonPackageFile, nodeModulesDir, jsonPackageLockFile
+                        jsonPackageFile, generatedJsonPackageFile, generatedNodeModules, jsonPackageLockFile
                     )
 
                     val isModified = updateResult.first
@@ -566,11 +493,6 @@ class Vaadin : Plugin<Project> {
                             }
                         }
 
-                        if (nodeModulesDir.exists()) {
-                            nodeModulesDir.deleteRecursively()
-                        }
-
-                        val generatedNodeModules = buildDir.resolve(FrontendUtils.NODE_MODULES)
                         if (generatedNodeModules.exists()) {
                             generatedNodeModules.deleteRecursively()
                         }
@@ -582,7 +504,7 @@ class Vaadin : Plugin<Project> {
                     if (doCleanup || isModified || hashIsModified || webPackNotInstalled) {
                         println("\t\tSomething changed, installing dependencies")
                         // must run AFTER package.json file is created **AND** packages are updated!
-                        installPackageDependencies()
+                        installPackageDependencies(project, variantComputer, nodeExtension, generatedNodeModules)
 
                         // for node_modules\@vaadin\vaadin-usage-statistics
                         //or you can disable vaadin-usage-statistics for the project by adding
@@ -632,7 +554,7 @@ class Vaadin : Plugin<Project> {
                     /////////////////////
 
 
-                    val targetDirectory = nodeModulesDir.resolve(FrontendUtils.FLOW_NPM_PACKAGE_NAME)
+                    val targetDirectory = generatedNodeModules.resolve(FrontendUtils.FLOW_NPM_PACKAGE_NAME)
                     targetDirectory.mkdirs()
                     println("\tCopying frontend resources to '$targetDirectory'")
 
@@ -645,7 +567,7 @@ class Vaadin : Plugin<Project> {
                     // copy jar resources
                     @Suppress("LocalVariableName")
                     val WILDCARD_INCLUSIONS = arrayOf("**/*.js", "**/*.css")
-                    val jarContentsManager = com.vaadin.flow.server.frontend.JarContentsManager()
+                    val jarContentsManager = JarContentsManager()
                     frontendLocations.forEach { location ->
                         jarContentsManager.copyIncludedFilesFromJarTrimmingBasePath(
                             location, Constants.RESOURCES_FRONTEND_DEFAULT,
@@ -665,12 +587,11 @@ class Vaadin : Plugin<Project> {
                     // copy Local Resources
                     if (frontendDir.isDirectory) {
                         start = System.nanoTime()
-                        frontendDir.absoluteFile
-                            .copyRecursively(targetDirectory, true)
+                        frontendDir.absoluteFile.copyRecursively(targetDirectory, true)
 
                         ms = (System.nanoTime() - start) / 1000000
                         println("\t\tCopied frontend directory $frontendDir")
-                        println("\t\tCopied frontend directory in $ms ms")
+                        println("\t\t                     took $ms ms")
                     } else {
                         println("\t\tFound no local frontend resources for the project")
                     }
@@ -691,21 +612,24 @@ class Vaadin : Plugin<Project> {
                         .createScanner(false, customClassFinder, true)
 
                     val provider =
-                        com.vaadin.flow.function.SerializableFunction<com.vaadin.flow.server.frontend.scanner.ClassFinder, com.vaadin.flow.server.frontend.scanner.FrontendDependenciesScanner> { t ->
+                        SerializableFunction<ClassFinder, FrontendDependenciesScanner> { t ->
                             FrontendDependenciesScanner.FrontendDependenciesScannerFactory().createScanner(true, t, true)
                         }
 
-                    val taskUpdateClass = com.vaadin.flow.server.frontend.TaskUpdateImports::class.java
+                    val taskUpdateClass = TaskUpdateImports::class.java
                     val constructor = taskUpdateClass.declaredConstructors.first { constructor -> constructor.parameterCount == 8 }
                     constructor.isAccessible = true
 
                     val updateImports = constructor.newInstance(
-                        customClassFinder, frontendDependencies, provider,
+                        customClassFinder,  // a reusable class finder
+                        frontendDependencies,  // a reusable frontend dependencies scanner
+                        provider,              // fallback scanner provider, not {@code null}
                         jsonPackageFile.parentFile, // folder with the `package.json` file
                         generatedFilesDir, // folder where flow generated files will be placed.
                         frontendDir,  // a directory with project's frontend files
-                        tokenFile, Updater.getJson(tokenFile)
-                    ) as com.vaadin.flow.server.frontend.TaskUpdateImports
+                        tokenFile,    // the token (flow-build-info.json) path, may be {@code null}
+                        Updater.getJson(tokenFile) // object to fill with token file data, may be {@code null}
+                    ) as TaskUpdateImports
 
                     updateImports.execute()
 
@@ -723,18 +647,15 @@ class Vaadin : Plugin<Project> {
                     val npmDir = variantComputer.computeNpmDir(nodeExtension, nodeDirProvider)
                     val npmBinDir = variantComputer.computeNpmBinDir(npmDir).get().asFile.absolutePath
                     val nodeBinDir = nodeBinDirProvider.get().asFile.absolutePath
-                    val nodePath = npmBinDir + File.pathSeparator + nodeBinDir
-
+                    val nodePath = npmBinDir + File.pathSeparator + project.buildDir
 
                     // For information about webpack, SEE https://webpack.js.org/guides/getting-started/
 
                     val exec = Exec(project)
                     exec.executable = nodeExec
                     exec.path = nodePath
-                    exec.workingDir = variantComputer.computeNodeModulesDir(nodeExtension).get().asFile
-
-
                     exec.workingDir = buildDir
+
                     exec.arguments = listOf(webPackExecutableFile.path, "--config", webPackProdFile.absolutePath, "--silent")
                     exec.suppressOutput = false
                     exec.debug = false
@@ -750,15 +671,34 @@ class Vaadin : Plugin<Project> {
             }
         }
 
-        fun installPackageDependencies() {
+        private fun installPackageDependencies(
+            project: Project,
+            variantComputer: VariantComputer,
+            nodeExtension: NodeExtension,
+            nodeModulesDir: File
+        ) {
             // now we have to install the dependencies from package.json! We do this MANUALLY, instead of using the builder
-            println("\tInstalling package dependencies --- FIXEME")
+            println("\tInstalling package dependencies")
 
-//            val packageInstallExec = getExec()
-//            packageInstallExec.environment["ADBLOCK"] = "1"
-//            packageInstallExec.environment["NO_UPDATE_NOTIFIER"] = "1"
-//            packageInstallExec.arguments = listOf(npmScriptFile, "install")
-//            packageInstallExec.execute()
+            val nodeDirProvider = variantComputer.computeNodeDir(nodeExtension)
+            val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
+            val nodeExec = variantComputer.computeNodeExec(nodeExtension, nodeBinDirProvider).get()
+
+            val npmDir = variantComputer.computeNpmDir(nodeExtension, nodeDirProvider)
+            val npmScriptFile = variantComputer.computeNpmScriptFile(nodeDirProvider, "npm").get()
+            val npmBinDir = variantComputer.computeNpmBinDir(npmDir).get().asFile.absolutePath
+            val nodeBinDir = nodeBinDirProvider.get().asFile.absolutePath
+            val nodePath = npmBinDir + File.pathSeparator + nodeBinDir
+
+            val exec = Exec(project)
+            exec.executable = nodeExec
+            exec.path = nodePath
+            exec.workingDir = nodeModulesDir
+
+            exec.environment["ADBLOCK"] = "1"
+            exec.environment["NO_UPDATE_NOTIFIER"] = "1"
+            exec.arguments = listOf(npmScriptFile, "install")
+            exec.execute()
         }
 
         /**
