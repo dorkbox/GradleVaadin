@@ -61,6 +61,8 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
     @get:Input
     var vaadinVersion = "14.1.17"
 
+    // undertowVersion
+
     @get:Input
     var workDir = project.buildDir
         set(value) {

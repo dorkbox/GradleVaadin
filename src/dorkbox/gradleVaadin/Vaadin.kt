@@ -95,6 +95,9 @@ class Vaadin : Plugin<Project> {
             }
         }
 
+        // jar task must include the generated VAADIN files that are placed in the build directory
+        // token file
+
 
 //        val npmInstallTask = project.tasks.named(NpmInstallTask.NAME).get().apply {
 //            this as NpmInstallTask
@@ -304,37 +307,19 @@ class Vaadin : Plugin<Project> {
             val generatedNodeModules = buildDir.resolve(FrontendUtils.NODE_MODULES)
             val webPackExecutableFile = generatedNodeModules.resolve("webpack").resolve("bin").resolve("webpack.js").absoluteFile
 
-            val tokenFile: File
-            val generatedFilesDir: File
+            val tokenFile = buildDir.resolve(FrontendUtils.TOKEN_FILE)
+            val generatedFilesDir = buildDir.resolve(FrontendUtils.FRONTEND).absoluteFile
 
             // setup the token file
             run {
                 // This matches the AppLauncher!
-                val prodTokenFile = vaadinDir.resolve(FrontendUtils.TOKEN_FILE)
-                val devTokenFile = buildDir.resolve(FrontendUtils.TOKEN_FILE)
-
-                // always delete BOTH token files! We read these files in the launcher to determine if we are in DEV or PROD mode!
-                prodTokenFile.delete()
-                devTokenFile.delete()
-
-                val prodGeneratedFilesDir = vaadinDir.resolve(FrontendUtils.FRONTEND).absoluteFile
-                val devGeneratedFilesDir = buildDir.resolve(FrontendUtils.FRONTEND).absoluteFile
-
-                if (productionMode) {
-                    tokenFile = prodTokenFile
-                    generatedFilesDir = prodGeneratedFilesDir
-                    devGeneratedFilesDir.deleteRecursively() // always delete the OTHER generated directory
-                } else {
-                    tokenFile = devTokenFile
-                    generatedFilesDir = devGeneratedFilesDir
-                    prodGeneratedFilesDir.deleteRecursively() // always delete the OTHER generated directory
-                }
+                tokenFile.delete()
+                generatedFilesDir.deleteRecursively() // always delete the generated directory
             }
 
             // REGARDING the current version of polymer.
             // see: com.vaadin.flow.server.frontend.NodeUpdater.updateMainDefaultDependencies
             val polymerVersion = "3.2.0"
-
 
             println("\tCompiling Vaadin resources")
             println("\tProduction mode: $productionMode")
@@ -384,26 +369,22 @@ class Vaadin : Plugin<Project> {
                     // always delete the generated directory
                     generatedFilesDir.deleteRecursively()
 
-
-                    // copy our package.json + package-lock.json + webpack.config.js files to the build dir (only if they are different!)
-                    Updater.compareAndCopy(origWebPackFile, webPackFile)
-                    Updater.compareAndCopy(origWebPackProdFile, webPackProdFile)
-
-
                     if (!generatedDir.exists() && !generatedDir.mkdirs()) {
                         throw GradleException("Unable to continue. Target generation dir $generatedDir cannot be created")
                     }
 
-                    val wasModified = Updater.createMissingPackageJson(jsonPackageFile, generatedJsonPackageFile, polymerVersion)
-                    if (wasModified) {
-                        println("\t\tPackage file was modified!")
-                    }
+                    JsonPackageTools.fixOriginalJsonPackage(jsonPackageFile, generatedJsonPackageFile, polymerVersion)
+
+                    // copy our package.json + package-lock.json + webpack.config.js files to the build dir (only if they are different!)
+                    JsonPackageTools.compareAndCopy(jsonPackageFile, generatedJsonPackageFile)
+                    JsonPackageTools.compareAndCopy(origWebPackFile, webPackFile)
+                    JsonPackageTools.compareAndCopy(origWebPackProdFile, webPackProdFile)
 
                     val flowImportFile = generatedFilesDir.resolve(FrontendUtils.IMPORTS_NAME)
 
                     // we have to make additional customizations to the webpack.generated.js file
-                    val relativeStaticResources = Updater.relativize(baseDir, metaInfDir).replace("./", "")
-                    Updater.generateWebPackGeneratedConfig(
+                    val relativeStaticResources = JsonPackageTools.relativize(baseDir, metaInfDir).replace("./", "")
+                    JsonPackageTools.generateWebPackGeneratedConfig(
                         webPackFile,
                         frontendDir,
                         vaadinDir,
@@ -437,7 +418,7 @@ class Vaadin : Plugin<Project> {
                     buildInfo.put(Constants.SERVLET_PARAMETER_ENABLE_DEV_SERVER, !productionMode)
 
                     tokenFile.ensureParentDirsCreated()
-                    Updater.writeJson(tokenFile, buildInfo)
+                    JsonPackageTools.writeJson(tokenFile, buildInfo)
                     tokenFile.writeText(JsonUtil.stringify(buildInfo, 2) + "\n", Charsets.UTF_8)
 
                     // println("\t\tToken content:\n ${tokenFile.readText(Charsets.UTF_8)}")
@@ -459,9 +440,9 @@ class Vaadin : Plugin<Project> {
                     val frontendDependencies = FrontendDependenciesScanner.FrontendDependenciesScannerFactory()
                         .createScanner(false, customClassFinder, true)
 
-                    val packageJson = Updater.getOrCreateJson(generatedJsonPackageFile)
+                    val packageJson = JsonPackageTools.getOrCreateJson(generatedJsonPackageFile)
 
-                    val updateResult = Updater.updateGeneratedPackageJsonDependencies(
+                    val updateResult = JsonPackageTools.updateGeneratedPackageJsonDependencies(
                         packageJson,
                         frontendDependencies.packages,
                         jsonPackageFile, generatedJsonPackageFile, generatedNodeModules, jsonPackageLockFile
@@ -469,10 +450,10 @@ class Vaadin : Plugin<Project> {
 
                     val isModified = updateResult.first
                     if (isModified) {
-                        Updater.writeJson(generatedJsonPackageFile, packageJson)
+                        JsonPackageTools.writeJson(generatedJsonPackageFile, packageJson)
                     }
 
-                    val hashIsModified = Updater.updatePackageHash(jsonPackageFile, packageJson)
+                    val hashIsModified = JsonPackageTools.updatePackageHash(jsonPackageFile, packageJson)
                     if (hashIsModified) {
                         println("\t\tPackage dependencies were modified!")
                     }
@@ -505,15 +486,6 @@ class Vaadin : Plugin<Project> {
                         println("\t\tSomething changed, installing dependencies")
                         // must run AFTER package.json file is created **AND** packages are updated!
                         installPackageDependencies(project, variantComputer, nodeExtension, generatedNodeModules)
-
-                        // for node_modules\@vaadin\vaadin-usage-statistics
-                        //or you can disable vaadin-usage-statistics for the project by adding
-                        //```
-                        //   "vaadin": { "disableUsageStatistics": true }
-                        //```
-                        //to your project `package.json` and running `npm install` again (remove `node_modules` if needed).
-                        //
-                        //You can verify this by checking that `vaadin-usage-statistics.js` contains an empty function.
                     }
                 }
 
@@ -521,6 +493,10 @@ class Vaadin : Plugin<Project> {
                     // the dev mode initializer from the App Launcher will build everything following, but in a special way
                     return
                 }
+
+                // fix token file location
+                println("\tCopying token file...")
+                tokenFile.copyTo(vaadinDir.resolve(FrontendUtils.TOKEN_FILE), overwrite = true)
 
                 // copyResources
                 run {
@@ -628,7 +604,7 @@ class Vaadin : Plugin<Project> {
                         generatedFilesDir, // folder where flow generated files will be placed.
                         frontendDir,  // a directory with project's frontend files
                         tokenFile,    // the token (flow-build-info.json) path, may be {@code null}
-                        Updater.getJson(tokenFile) // object to fill with token file data, may be {@code null}
+                        JsonPackageTools.getJson(tokenFile) // object to fill with token file data, may be {@code null}
                     ) as TaskUpdateImports
 
                     updateImports.execute()

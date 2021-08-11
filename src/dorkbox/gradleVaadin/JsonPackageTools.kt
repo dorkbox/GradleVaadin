@@ -2,6 +2,8 @@ package dorkbox.gradleVaadin
 
 import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.frontend.FrontendUtils
+import elemental.json.Json
+import elemental.json.JsonObject
 import elemental.json.impl.JsonUtil
 import org.jetbrains.kotlin.gradle.internal.ensureParentDirsCreated
 import java.io.File
@@ -9,7 +11,7 @@ import java.io.FileOutputStream
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 
-class Updater {
+class JsonPackageTools {
     companion object {
         private const val DEPENDENCIES = "dependencies"
         private const val DEV_DEPENDENCIES = "devDependencies"
@@ -30,7 +32,7 @@ class Updater {
         private val regex = "\\\\".toRegex()
 
 
-        fun createMissingPackageJson(jsonPackageFile: File, generatedJsonPackageFile: File, polymerVersion: String): Boolean {
+        fun fixOriginalJsonPackage(jsonPackageFile: File, generatedJsonPackageFile: File, polymerVersion: String) {
 
             val mainContent = getOrCreateJson(jsonPackageFile)
 
@@ -38,8 +40,10 @@ class Updater {
             // NOTE: this ABSOLUTELY MUST start with a "./", otherwise NPM freaks out
             val generatedDirAsRelative = "./" + relativize(jsonPackageFile.parentFile, generatedJsonPackageFile.parentFile)
 
-            var modified = updateMainDefaultDependencies(mainContent, polymerVersion, generatedDirAsRelative)
-            if (modified) {
+            val updatedDependencies = updateMainDefaultDependencies(mainContent, polymerVersion, generatedDirAsRelative)
+            if (updatedDependencies > 0) {
+                println("\t\tAdded $updatedDependencies items to original package.json")
+
                 if (mainContent.hasKey(APP_PACKAGE_HASH)) {
                     println("\t\t" + FORCE_INSTALL_HASH)
                     mainContent.put(APP_PACKAGE_HASH, FORCE_INSTALL_HASH)
@@ -49,26 +53,26 @@ class Updater {
 
                 writeJson(jsonPackageFile, mainContent)
             }
-
-            var customContent = getJson(generatedJsonPackageFile)
-            if (customContent == null) {
-                modified = true
-                customContent = elemental.json.Json.createObject()
-                updateAppDefaultDependencies(customContent)
-
-                writeJson(generatedJsonPackageFile, customContent)
-            }
-
-            return modified
         }
 
-        private fun updateMainDefaultDependencies(packageJson: elemental.json.JsonObject, polymerVersion: String, generatedDirAsRelative: String):
-                Boolean {
+        private fun updateMainDefaultDependencies(packageJson: JsonObject, polymerVersion: String,
+                                                  generatedDirAsRelative: String): Int {
             var added = 0
             added += addDependency(packageJson, null, DEP_NAME_KEY, DEP_NAME_DEFAULT)
             added += addDependency(packageJson, null, DEP_LICENSE_KEY, DEP_LICENSE_DEFAULT)
             added += addDependency(packageJson, DEPENDENCIES, "@polymer/polymer", polymerVersion)
             added += addDependency(packageJson, DEPENDENCIES, "@webcomponents/webcomponentsjs", "^2.2.10")
+
+            // for node_modules\@vaadin\vaadin-usage-statistics
+            //or you can disable vaadin-usage-statistics for the project by adding
+            //```
+            //   "vaadin": { "disableUsageStatistics": true }
+            //```
+            //to your project `package.json` and running `npm install` again (remove `node_modules` if needed).
+            //
+            //You can verify this by checking that `vaadin-usage-statistics.js` contains an empty function.
+            added += addDependency(packageJson, "vaadin", "disableUsageStatistics", true)
+
 
             // dependency for the custom package.json placed in the generated folder.
             added += addDependency(packageJson, DEPENDENCIES, DEP_NAME_FLOW_DEPS, generatedDirAsRelative)
@@ -82,19 +86,15 @@ class Updater {
             added += addDependency(packageJson, DEV_DEPENDENCIES, "webpack-merge", "4.2.2")
             added += addDependency(packageJson, DEV_DEPENDENCIES, "raw-loader", "3.0.0")
 
-            if (added > 0) {
-                println("\t\tAdded $added dependencies to main package.json")
-            }
-            return added > 0
+            // defaults
+            added += addDependency(packageJson, null, DEP_NAME_KEY, DEP_NAME_FLOW_DEPS)
+            added += addDependency(packageJson, null, DEP_VERSION_KEY, DEP_VERSION_DEFAULT)
+            added += addDependency(packageJson, null, DEP_LICENSE_KEY, DEP_LICENSE_DEFAULT)
+
+            return added
         }
 
-        private fun updateAppDefaultDependencies(packageJson: elemental.json.JsonObject) {
-            addDependency(packageJson, null, DEP_NAME_KEY, DEP_NAME_FLOW_DEPS)
-            addDependency(packageJson, null, DEP_VERSION_KEY, DEP_VERSION_DEFAULT)
-            addDependency(packageJson, null, DEP_LICENSE_KEY, DEP_LICENSE_DEFAULT)
-        }
-
-        fun updateGeneratedPackageJsonDependencies(packageJson: elemental.json.JsonObject,
+        fun updateGeneratedPackageJsonDependencies(packageJson: JsonObject,
                                                    scannedDependencies: Map<String, String>,
                                                    mainPackageJson: File,
                                                    generatedPackageJson: File,
@@ -127,8 +127,9 @@ class Updater {
                     }
                 }
 
-                val flowDeps = npmModulesDir.resolve(DEP_NAME_FLOW_DEPS).resolve(Constants.PACKAGE_JSON)
-                doCleanUp = !isReleaseVersion(dependencies, mainPackageJson, generatedPackageJson, flowDeps, packageLockFile)
+                val flowDepsJsonFile = npmModulesDir.resolve(DEP_NAME_FLOW_DEPS).resolve(Constants.PACKAGE_JSON)
+                doCleanUp = !isReleaseVersion(dependencies, mainPackageJson,
+                                              generatedPackageJson, flowDepsJsonFile, packageLockFile)
             }
 
             return Pair(added > 0, doCleanUp)
@@ -186,7 +187,7 @@ class Updater {
          *
          * @return true if hash has changed
          */
-        fun updatePackageHash(jsonPackageFile: File, generatedPackageJson: elemental.json.JsonObject): Boolean {
+        fun updatePackageHash(jsonPackageFile: File, generatedPackageJson: JsonObject): Boolean {
             var content = ""
             // If we have dependencies generate hash on ordered content.
             if (generatedPackageJson.hasKey(DEPENDENCIES)) {
@@ -210,37 +211,59 @@ class Updater {
             return modified
         }
 
-        fun getOrCreateJson(jsonFile: File): elemental.json.JsonObject {
-            return getJson(jsonFile) ?: elemental.json.Json.createObject()
+        fun getOrCreateJson(jsonFile: File): JsonObject {
+            return getJson(jsonFile) ?: Json.createObject()
         }
 
-        fun getJson(jsonFile: File): elemental.json.JsonObject? {
+        fun getJson(jsonFile: File): JsonObject? {
             if (jsonFile.canRead()) {
-                return JsonUtil.parse(jsonFile.readText(Charsets.UTF_8)) as elemental.json.JsonObject?
+                return JsonUtil.parse(jsonFile.readText(Charsets.UTF_8)) as JsonObject?
             }
             return null
         }
 
-        fun writeJson(jsonFile: File, jsonObject: elemental.json.JsonObject) {
+        fun writeJson(jsonFile: File, jsonObject: JsonObject) {
             jsonFile.ensureParentDirsCreated()
             jsonFile.writeText(JsonUtil.stringify(jsonObject, 2) + "\n", Charsets.UTF_8)
         }
 
         // add, if necessary a dependency. If it's missing, return 1, otherwise 0
-        private fun addDependency(json: elemental.json.JsonObject, key: String?, pkg: String?, version: String): Int {
+        private fun addDependency(json: JsonObject, key: String?, pkg: String, version: String, overwrite: Boolean = false): Int {
             @Suppress("NAME_SHADOWING")
             var json = json
 
             if (key != null) {
                 if (!json.hasKey(key)) {
-                    json.put(key, elemental.json.Json.createObject())
+                    json.put(key, Json.createObject())
                 }
                 json = json.get(key)
             }
 
-            if (!json.hasKey(pkg) || json.getString(pkg) != version) {
+            if (!json.hasKey(pkg) || (overwrite && json.getString(pkg) != version)) {
                 json.put(pkg, version)
                 println("\t\t\tAdded '$pkg':'$version'")
+
+                return 1
+            }
+
+            return 0
+        }
+
+        // add, if necessary a dependency. If it's missing, return 1, otherwise 0
+        public fun addDependency(json: JsonObject, key: String?, pkg: String, value: Boolean, overwrite: Boolean = false): Int {
+            @Suppress("NAME_SHADOWING")
+            var json = json
+
+            if (key != null) {
+                if (!json.hasKey(key)) {
+                    json.put(key, Json.createObject())
+                }
+                json = json.get(key)
+            }
+
+            if (!json.hasKey(pkg) || (overwrite && json.getBoolean(pkg) != value)) {
+                json.put(pkg, value)
+                println("\t\t\tAdded '$pkg':'$value'")
 
                 return 1
             }
@@ -252,7 +275,7 @@ class Updater {
          * Compares vaadin-shrinkwrap dependency version from the `dependencies` object with the current vaadin-shrinkwrap version
          * (retrieved from various sources like package.json, package-lock.json).
          */
-        private fun isReleaseVersion(dependencies: elemental.json.JsonObject,
+        private fun isReleaseVersion(dependencies: JsonObject,
                                      mainPackageJson: File,
                                      generatedPackageJson: File,
                                      flowDeps: File,
