@@ -15,25 +15,10 @@
  */
 package dorkbox.gradleVaadin
 
-import com.vaadin.flow.server.Constants
-import com.vaadin.flow.server.frontend.FrontendUtils
-import dorkbox.gradleVaadin.node.variant.VariantComputer
 import org.gradle.api.Project
-import org.gradle.api.publish.PublishingExtension
-import org.gradle.api.publish.maven.MavenPom
-import org.gradle.api.publish.maven.MavenPublication
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.Internal
-import org.gradle.internal.impldep.org.apache.maven.model.Developer
-import org.gradle.internal.impldep.org.apache.maven.model.IssueManagement
-import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.getByType
-import org.gradle.plugins.signing.Sign
-import org.gradle.plugins.signing.SigningExtension
-import org.gradle.plugins.signing.signatory.internal.pgp.InMemoryPgpSignatoryProvider
-import java.io.File
-import java.security.PrivateKey
-import java.time.Duration
+import org.gradle.kotlin.dsl.property
 
 open class VaadinConfig(private val project: Project): java.io.Serializable {
     companion object {
@@ -47,6 +32,24 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
             return project.extensions.create("vaadin", VaadinConfig::class.java, project)
         }
     }
+
+    // this changes if the build production task is run
+    internal var productionMode = project.objects.property<Boolean>().convention(false)
+
+
+    // the gradle property model is retarded, but sadly the "right way to do it"
+    @get:Input
+    internal var debug_ = project.objects.property<Boolean>().convention(false)
+    var debug: Boolean
+    get() { return debug_.get() }
+    set(value) { debug_.set(value)}
+
+    @get:Input
+    internal var flowDirectory_ = project.objects.property<String>().convention("./${com.vaadin.flow.server.frontend.FrontendUtils.FRONTEND}")
+    var flowDirectory: String
+    get() { return flowDirectory_.get() }
+    set(value) { flowDirectory_.set(value)}
+
 
     /**
      * Version of node to download and install
@@ -71,10 +74,8 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
         }
 
 
-//    @get:Input
-//    var test = "aaaa"
-//        set(value) {
-//            field = value
-//            NodeExtension[project].test.set(value)
-//        }
+    internal val vaadinCompiler by lazy {  VaadinCompiler(project) }
+//    internal fun init() {
+//        println("\tInitializing the vaadin compiler")
+//    }
 }

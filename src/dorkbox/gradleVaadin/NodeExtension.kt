@@ -75,7 +75,10 @@ open class NodeExtension(project: Project) {
      * If true, it will download node using above parameters
      * Note that npm is bundled with Node.js
      */
-    val download = project.objects.property<Boolean>().convention(true)
+    var download = project.objects.property<Boolean>().convention(true)
+        set(value) {
+            field.set(value)
+        }
 
     /**
      * Whether the plugin automatically should add the proxy configuration to npm and yarn commands

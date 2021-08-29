@@ -64,16 +64,18 @@ open class PlatformHelper constructor(private val props: Properties = System.get
                 .orElseThrow { IOException("No output") }
         }
 
-        fun validateToolVersion(
-            tool: String, toolVersion: Version,
-            supported: Version, shouldWork: Version
-        ) {
+        fun validateToolVersion(tool: String, toolVersion: Version, supported: Version, silent: Boolean): Boolean {
             if ("true".equals(System.getProperty(FrontendUtils.PARAM_IGNORE_VERSION_CHECKS), ignoreCase = true)) {
-                return
+                return true
             }
             if (toolVersion.greaterThanOrEqualTo(supported)) {
-                return
+                return true
             }
+
+            if (silent) {
+                return false
+            }
+
             throw IllegalStateException(
                 buildTooOldString(
                     tool, toolVersion.toString(),

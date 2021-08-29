@@ -2,8 +2,6 @@ package dorkbox.gradleVaadin.node.task
 
 import com.dorkbox.version.Version
 import com.vaadin.flow.server.Constants
-import com.vaadin.flow.server.frontend.FrontendUtils
-import com.vaadin.flow.server.frontend.FrontendVersion
 import dorkbox.executor.Executor
 import dorkbox.gradleVaadin.NodeExtension
 import dorkbox.gradleVaadin.Vaadin
@@ -15,12 +13,9 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.*
-import org.gradle.internal.impldep.org.bouncycastle.asn1.cmc.CMCStatus.success
 import java.io.File
-import java.nio.file.CopyOption
 import java.nio.file.Files
 import java.nio.file.Paths
-import java.nio.file.StandardCopyOption
 import javax.inject.Inject
 
 abstract class NodeSetupTask : DefaultTask() {
@@ -76,6 +71,15 @@ abstract class NodeSetupTask : DefaultTask() {
     @TaskAction
     fun exec() {
         // vaadin DEV MODE looks for node in the following location: basedir + "node/node_modules/npm/bin/npm-cli.js"
+        if (nodeDir.get().asFile.exists()) {
+            val installOK = validateInstall(true)
+            if (installOK) {
+                // if version info is OK, no need to download + reinstall nodejs
+                println("\tPrevious install is valid, skipping reinstall.")
+                return
+            }
+        }
+
         deleteExistingNode()
         unpackNodeArchive()
         renameDirectory()
@@ -150,32 +154,40 @@ abstract class NodeSetupTask : DefaultTask() {
         }
     }
 
-    private fun validateInstall() {
+    private fun validateInstall(silent: Boolean = false): Boolean {
+        if (!nodeExec.exists()) {
+            return false
+        }
+
         // gets the version of Node and NPM and compares them against the supported versions
         var detectedVersion = Executor.run(nodeExec.absolutePath, "--version").let {
             PlatformHelper.parseVersionString(it)
         }
         var parsedVersion = Version.from(detectedVersion)
-        println("\tNode info: $detectedVersion @ $nodeExec")
+        println("\tNode info: $detectedVersion [$nodeExec]")
 
-        val SUPPORTED_NODE_VERSION = Version.from(Constants.SUPPORTED_NODE_MAJOR_VERSION, Constants.SUPPORTED_NODE_MINOR_VERSION
-        )
-        val SHOULD_WORK_NODE_VERSION = Version.from(Constants.SHOULD_WORK_NODE_MAJOR_VERSION, Constants.SHOULD_WORK_NODE_MINOR_VERSION
-        )
-        validateToolVersion("node", parsedVersion, SUPPORTED_NODE_VERSION, SHOULD_WORK_NODE_VERSION)
+        val SUPPORTED_NODE_VERSION = Version.from(Constants.SUPPORTED_NODE_MAJOR_VERSION, Constants.SUPPORTED_NODE_MINOR_VERSION)
+        val nodeIsOK = validateToolVersion("node", parsedVersion, SUPPORTED_NODE_VERSION, silent)
+
+        if (!nodeIsOK) {
+            return false
+        }
 
 
         detectedVersion = Executor.run(npmExec.absolutePath, "--version").let {
             PlatformHelper.parseVersionString(it)
         }
         parsedVersion = Version.from(detectedVersion)
-        println("\t NPM info: $detectedVersion @ $npmExec")
+        println("\tNPM info: $detectedVersion [$npmExec]")
 
-        val SUPPORTED_NPM_VERSION = Version.from(Constants.SUPPORTED_NPM_MAJOR_VERSION, Constants.SUPPORTED_NPM_MINOR_VERSION
-        )
-        val SHOULD_WORK_NPM_VERSION = Version.from(Constants.SHOULD_WORK_NPM_MAJOR_VERSION, Constants.SHOULD_WORK_NPM_MINOR_VERSION
-        )
-        validateToolVersion("npm", parsedVersion, SUPPORTED_NPM_VERSION, SHOULD_WORK_NPM_VERSION)
+        val SUPPORTED_NPM_VERSION = Version.from(Constants.SUPPORTED_NPM_MAJOR_VERSION, Constants.SUPPORTED_NPM_MINOR_VERSION)
+        val npmIsOK = validateToolVersion("npm", parsedVersion, SUPPORTED_NPM_VERSION, silent)
+
+        if (!npmIsOK) {
+            return false
+        }
+
+        return true
     }
 
     companion object {
