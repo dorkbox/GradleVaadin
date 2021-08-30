@@ -332,11 +332,8 @@ abstract class NodeSetupTask : DefaultTask() {
                 .environment("ADBLOCK", "1")
                 .workingDirectory(projectDir)
                 .addArg(listOf(
-                    "--no-update-notifier",
-                    "--no-audit",
                     "--shamefully-hoist=true",
-                    "install", "pnpm@$pnpmVersion",
-                    "--scripts-prepend-node-path")) // --scripts-prepend-node-path is added to fix path issues
+                    "install", "pnpm@$pnpmVersion"))
 
             if (debug) {
                 exe.enableRead()
