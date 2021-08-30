@@ -7,29 +7,34 @@ import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.property
 
 open class NodeExtension(project: Project) {
-    private val buildDir = project.layout.buildDirectory
+    private val buildDir_ = project.layout.buildDirectory
+
+    /**
+     * The directory where the build occurs
+     */
+    val buildDir = project.objects.directoryProperty().convention(buildDir_)
 
     /**
      * The directory where Node.js is unpacked (when download is true)
      */
-    val workDir = project.objects.directoryProperty().convention(buildDir.dir("nodejs"))
+    val workDir = project.objects.directoryProperty().convention(buildDir_.dir("nodejs"))
 
     /**
      * The directory where npm is installed (when a specific version is defined)
      */
-    val npmWorkDir = project.objects.directoryProperty().convention(buildDir.dir("npm"))
+    val npmWorkDir = project.objects.directoryProperty().convention(buildDir_.dir("npm"))
 
     /**
      * The directory where yarn is installed (when a Yarn task is used)
      */
-    val yarnWorkDir = project.objects.directoryProperty().convention(buildDir.dir("yarn"))
+    val yarnWorkDir = project.objects.directoryProperty().convention(buildDir_.dir("yarn"))
 
     /**
      * The Node.js project directory location
      * This is where the package.json file and node_modules directory are located
      * By default it is at the root of the current project
      */
-    val nodeProjectDir = project.objects.directoryProperty().convention(buildDir)
+    val nodeProjectDir = project.objects.directoryProperty().convention(buildDir_)
 
     /**
      * Version of node to download and install (only used if download is true)
