@@ -125,11 +125,13 @@ class Vaadin : Plugin<Project> {
                 nodeExtension.distBaseUrl.orNull?.let { addRepository(it) }
                 configureNodeSetupTask(nodeExtension)
             }
+
+            VaadinConfig[project].vaadinCompiler.log()
         }
 
         val nodeSetup = project.tasks.named(NodeSetupTask.NAME)
 
-        val prepFrontEnd = project.tasks.create("prepFrontEnd").apply {
+        val prepareJsonFiles = project.tasks.create("prepareJsonFiles").apply {
             dependsOn(nodeSetup)
             group = "vaadin"
             description = "Prepare Vaadin frontend"
@@ -138,12 +140,25 @@ class Vaadin : Plugin<Project> {
 
             doLast {
                 val vaadinCompiler = VaadinConfig[project].vaadinCompiler
-                vaadinCompiler.prepareFrontEnd()
+                vaadinCompiler.prepareJsonFiles()
+            }
+        }
+
+        val prepareWebpackFiles = project.tasks.create("prepareWebpackFiles").apply {
+            dependsOn(prepareJsonFiles)
+            group = "vaadin"
+            description = "Prepare Vaadin frontend"
+
+//                inputs.files(vaadinCompiler.jsonPackageFile)
+
+            doLast {
+                val vaadinCompiler = VaadinConfig[project].vaadinCompiler
+                vaadinCompiler.prepareWebpackFiles()
             }
         }
 
         val createTokenFile = project.tasks.create("createTokenFile").apply {
-            dependsOn(prepFrontEnd)
+            dependsOn(prepareWebpackFiles)
             group = "vaadin"
             description = "Create Vaadin token file"
 
@@ -164,7 +179,7 @@ class Vaadin : Plugin<Project> {
             }
         }
 
-        val generateJsonPackage = project.tasks.create("generateJsonPackage").apply {
+        val generateFlowJsonPackage = project.tasks.create("generateFlowJsonPackage").apply {
             dependsOn(generateWebComponents)
             group = "vaadin"
             description = "Compile Vaadin resources for Development"
@@ -189,7 +204,7 @@ class Vaadin : Plugin<Project> {
 
 
         project.tasks.create(compileDevName).apply {
-            dependsOn(generateJsonPackage, project.tasks.named("classes"))
+            dependsOn(generateFlowJsonPackage, project.tasks.named("classes"))
             group = "vaadin"
             description = "Compile Vaadin resources for Development"
 
@@ -211,7 +226,7 @@ class Vaadin : Plugin<Project> {
         }
 
         project.tasks.create(compileProdName).apply {
-            dependsOn(generateJsonPackage, project.tasks.named("classes"))
+            dependsOn(generateFlowJsonPackage, project.tasks.named("classes"))
 
             group = "vaadin"
             description = "Compile Vaadin resources for Production"

@@ -6,12 +6,10 @@ import com.vaadin.flow.server.InitParameters
 import com.vaadin.flow.server.frontend.FrontendUtils
 import com.vaadin.flow.server.frontend.JarContentsManager
 import com.vaadin.flow.server.frontend.NodeUpdaterAccess
-import com.vaadin.flow.server.frontend.TaskUpdateImports
 import com.vaadin.flow.server.frontend.scanner.ClassFinder
 import com.vaadin.flow.server.frontend.scanner.FrontendDependenciesScanner
-import dorkbox.gradleVaadin.node.variant.VariantComputer
+import dorkbox.gradleVaadin.node.NodeInfo
 import elemental.json.Json
-import elemental.json.impl.JsonUtil
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 import org.gradle.api.tasks.SourceSetContainer
@@ -29,7 +27,7 @@ internal class VaadinCompiler(val project: Project) {
 
     val debug = VaadinConfig[project].debug
 
-    val buildDir = project.buildDir
+    val buildDir = project.buildDir.absoluteFile
     val frontendDir = baseDir.resolve(FrontendUtils.FRONTEND)
 
     val webAppDir = baseDir.resolve("resources")
@@ -50,10 +48,10 @@ internal class VaadinCompiler(val project: Project) {
     val buildDirJsonPackageFile = buildDir.resolve(Constants.PACKAGE_JSON)
     val flowJsonPackageFile = buildDir.resolve(VaadinConfig[project].flowDirectory).resolve(Constants.PACKAGE_JSON)
     val generatedNodeModules = buildDir.resolve(FrontendUtils.NODE_MODULES)
-    val webPackExecutableFile = generatedNodeModules.resolve("webpack").resolve("bin").resolve("webpack.js").absoluteFile
+    val webPackExecutableFile = generatedNodeModules.resolve("webpack").resolve("bin").resolve("webpack.js")
 
     val tokenFile = buildDir.resolve(FrontendUtils.TOKEN_FILE)
-    val generatedFilesDir = buildDir.resolve(FrontendUtils.FRONTEND).absoluteFile
+    val generatedFilesDir = buildDir.resolve(FrontendUtils.FRONTEND)
 
     val flowImportFile = generatedFilesDir.resolve(FrontendUtils.IMPORTS_NAME)
 
@@ -61,24 +59,7 @@ internal class VaadinCompiler(val project: Project) {
     // see: com.vaadin.flow.server.frontend.NodeUpdater.updateMainDefaultDependencies
     val polymerVersion = "3.2.0"
 
-    val nodeExtension = NodeExtension[project]
-
-    val variantComputer = VariantComputer()
-    val nodeDirProvider = variantComputer.computeNodeDir(nodeExtension)
-    val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
-    val nodeBinExecProvider = variantComputer.computeNodeExec(nodeExtension, nodeBinDirProvider)
-
-    val npmScriptProvider = variantComputer.computeNpmScriptFile(nodeDirProvider, "npm")
-
-
-    val nodeDir = nodeDirProvider.get().asFile
-
-    val nodeModulesDir = variantComputer.computeNodeModulesDir(nodeExtension).get().asFile
-
-    val npmDirProvider = variantComputer.computeNpmDir(nodeExtension, nodeDirProvider)
-    val npmBinDirProvider = variantComputer.computeNpmBinDir(npmDirProvider)
-
-
+    val nodeInfo by lazy { NodeInfo(project) }
 
     //    ext.vaadin_charts_license = "00df96cb-e8da-4111-8e72-e3a1fc8b394b"       // registered to ajraman@net-ref.com
     //ext.vaadin_spreadsheets_license = "bc7e7ea0-3068-471d-ac3f-cbfe7be4d7ec" // registered to ajraman@net-ref.com
@@ -120,19 +101,22 @@ internal class VaadinCompiler(val project: Project) {
 
     init {
         println("\tInitializing the vaadin compiler")
-
-        println("\t\tDebug: $debug")
-        println("\t\tPolymer version: $polymerVersion")
-        println("\t\tBase Dir: $baseDir")
-        println("\t\tNode Dir: ${nodeDir}")
-        println("\t\tGenerated Dir: $frontendGeneratedDir")
-        println("\t\tWebPack Executable: $webPackExecutableFile")
-
-        println("\t\tJsonPackageFile: $jsonPackageFile")
-        println("\t\tJsonPackage generated file: ${buildDirJsonPackageFile}")
     }
 
-    fun prepareFrontEnd() {
+    fun log() {
+        if (debug) {
+            println("\t\tPolymer version: $polymerVersion")
+            println("\t\tBase Dir: $baseDir")
+            println("\t\tNode Dir: ${NodeExtension[project].workDir.asFile}")
+            println("\t\tGenerated Dir: $frontendGeneratedDir")
+            println("\t\tWebPack Executable: $webPackExecutableFile")
+
+            println("\t\tJsonPackageFile: $jsonPackageFile")
+            println("\t\tJsonPackage generated file: ${buildDirJsonPackageFile}")
+        }
+    }
+
+    fun prepareJsonFiles() {
         // always delete the VAADIN directory!
         vaadinDir.deleteRecursively()
 
@@ -148,6 +132,7 @@ internal class VaadinCompiler(val project: Project) {
 
         // we want to also MERGE in our saved (non-generated) json file contents to the generated file
         println("\tMerging original json into generated json.")
+
         val origJson = NodeUpdaterAccess.getJsonFileContent(jsonPackageFile)
         val genJson = NodeUpdaterAccess.getJsonFileContent(buildDirJsonPackageFile)
         JsonPackageTools.mergeJson(origJson, genJson)
@@ -159,39 +144,11 @@ internal class VaadinCompiler(val project: Project) {
         val locationOfGeneratedJsonForFlowDependencies = buildDir.resolve("frontend")
         NodeUpdaterAccess.createMissingPackageJson(buildDir, locationOfGeneratedJsonForFlowDependencies)
 
+        // now we have to update the package.json file with whatever version of into we have specified on the classpath
+        NodeUpdaterAccess.enablePackagesUpdate(customClassFinder, frontendDependencies, buildDir, VaadinConfig[project].enablePnpm, nodeInfo)
+    }
 
-        // so we must have TWO json files.
-        // -  the original json file (but existing in the build dir)
-        // -  the generated one containing all of the vaadin-flow dependencies (the original one must point to this one)
-
-//        val updater = NodeUpdaterAccess(null, null, buildDir, locationOfGeneratedJsonForFlowDependencies, ConsoleLog(messagePreface = "\t\t"))
-////        val genJson = updater.packageJson
-//        val jsonFile = updater.getPackageJsonFile()
-//
-////        JsonPackageTools.compareAndCopy(jsonPackageFile, jsonFile)
-//
-////        // we want to also MERGE in our saved (non-generated) json file contents to the generated file
-////        println("Merging original json into generated json.")
-////        val origJson = NodeUpdaterAccess.getJsonFileContent(jsonPackageFile)
-////        JsonPackageTools.mergeJson(origJson, genJson)
-//
-//        println("\tUpdating generated json file with defaults")
-//        val didUpdates = updater.updateDefaultDependencies(genJson)
-//        if (didUpdates) {
-//            println("\tAdded items to [$jsonFile]")
-//
-//            updater.writePackageFile(genJson)
-////            JsonPackageTools.updatePackageHash(genJson)
-////            JsonPackageTools.writeJson(jsonFile, genJson)
-//        }
-
-        // NOTE: this ABSOLUTELY MUST start with a "./", otherwise NPM freaks out
-//        JsonPackageTools.fixOriginalJsonPackage(jsonPackageFile, polymerVersion, "./frontend")
-
-
-//        val frontendGenJsonFile = buildDir.resolve(Constants.PACKAGE_JSON)
-        // only if they are different
-
+    fun prepareWebpackFiles() {
         JsonPackageTools.compareAndCopy(origWebPackFile, webPackFile)
         JsonPackageTools.compareAndCopy(origWebPackProdFile, webPackProdFile)
 
@@ -207,8 +164,23 @@ internal class VaadinCompiler(val project: Project) {
             customClassFinder
         )
 
-        // now we have to update the package.json file with whatever version of into we have specified on the classpath
-        NodeUpdaterAccess.enablePackagesUpdate(customClassFinder, frontendDependencies, buildDir)
+
+
+        // then copy frontend (this copies from the jar files) - TaskCopyFrontendFiles
+        // then copy frontend from local files - TaskCopyLocalFrontendFiles
+        // then TaskUpdateImports
+
+
+        // last DevModeHandler start
+
+
+        // the plugin on start needs to rewrite DevModeInitializer.initDevModeHandler so that all these tasks aren't run every time for dev mode
+        // because that is really slow to start up??
+        // ALTERNATIVELY, devmodeinit runs the same thing as the gradle plugin, but the difference is we only run the full gradle version
+        // for a production build (webpack is compiled instead of running dev-mode, is the only difference...).
+        //   the only problem, is when running as a JPMS module...
+        //      to solve this, we could modify the byte-code -- then RECREATE the jar (which we would then startup)
+        //         OR.. we modify the bytecode ON COMPILE, so that a "run" would always include the modified jar
     }
 
     fun createTokenFile() {
@@ -217,12 +189,14 @@ internal class VaadinCompiler(val project: Project) {
         println("\tCreating configuration token file: $tokenFile")
         println("\tProduction mode: $productionMode")
 
+
         // propagateBuildInfo & updateBuildInfo (combined from maven goals, because the token file is ONLY used for enableImportsUpdate)
         val buildInfo = Json.createObject()
 
         buildInfo.put(InitParameters.SERVLET_PARAMETER_COMPATIBILITY_MODE, false)
         buildInfo.put(InitParameters.SERVLET_PARAMETER_PRODUCTION_MODE, productionMode)
         buildInfo.put("polymer.version", polymerVersion)
+        buildInfo.put("pnpm.enabled", VaadinConfig[project].enablePnpm) // matches vaadin application launcher
 
         // used for defining folder paths for dev server
         if (!productionMode) {
@@ -233,10 +207,7 @@ internal class VaadinCompiler(val project: Project) {
 
         buildInfo.put(InitParameters.SERVLET_PARAMETER_ENABLE_DEV_SERVER, !productionMode)
 
-        tokenFile.delete()
-        tokenFile.ensureParentDirsCreated()
         JsonPackageTools.writeJson(tokenFile, buildInfo)
-        tokenFile.writeText(JsonUtil.stringify(buildInfo, 2) + "\n", Charsets.UTF_8)
 
         if (debug) {
             println("\tToken content:\n ${tokenFile.readText(Charsets.UTF_8)}")
@@ -382,33 +353,6 @@ internal class VaadinCompiler(val project: Project) {
     }
 
 
-    private fun installPackageDependencies(
-        project: Project,
-        nodeModulesDir: File
-    ) {
-        // now we have to install the dependencies from package.json! We do this MANUALLY, instead of using the builder
-        println("\tInstalling package dependencies")
-
-        val npmScriptFile = npmScriptProvider.get()
-        val nodeBinDir = nodeBinDirProvider.get().asFile.absolutePath
-        val npmBinDir = npmBinDirProvider.get().asFile.absolutePath
-        val nodePath = npmBinDir + File.pathSeparator + nodeBinDir
-
-
-        val exec = Exec(project)
-        exec.executable = nodeBinExecProvider.get()
-        exec.path = nodePath
-        exec.workingDir = nodeModulesDir.parentFile
-
-        exec.debug = debug
-        exec.suppressOutput = !debug
-
-        exec.environment["ADBLOCK"] = "1"
-        exec.environment["NO_UPDATE_NOTIFIER"] = "1"
-        exec.arguments = listOf(npmScriptFile, "install")
-        exec.execute()
-    }
-
     fun generateFlow() {
         // enableImportsUpdate
         val start = System.nanoTime()
@@ -425,54 +369,28 @@ internal class VaadinCompiler(val project: Project) {
                 FrontendDependenciesScanner.FrontendDependenciesScannerFactory().createScanner(true, t, true)
             }
 
-        val taskUpdateClass = TaskUpdateImports::class.java
-        val constructor = taskUpdateClass.declaredConstructors.first { constructor -> constructor.parameterCount == 8 }
-        constructor.isAccessible = true
 
-        val updateImports = constructor.newInstance(
-            customClassFinder,  // a reusable class finder
+        // we know this is not null, because we explicitly created it earlier
+        val tokenJson = JsonPackageTools.getJson(tokenFile)!!
+
+        NodeUpdaterAccess.generateFlow(
+            customClassFinder,     // a reusable class finder
             frontendDependencies,  // a reusable frontend dependencies scanner
             provider,              // fallback scanner provider, not {@code null}
-            jsonPackageFile.parentFile, // folder with the `package.json` file
+            buildDir,          // folder with the `package.json` file
             generatedFilesDir, // folder where flow generated files will be placed.
             frontendDir,  // a directory with project's frontend files
             tokenFile,    // the token (flow-build-info.json) path, may be {@code null}
-            JsonPackageTools.getJson(tokenFile) // object to fill with token file data, may be {@code null}
-        ) as TaskUpdateImports
-
-        updateImports.execute()
+            tokenJson, // object to fill with token file data, may be {@code null}
+            false
+        )
 
         val ms = (System.nanoTime() - start) / 1000000
         println("\t\tFinished in $ms ms")
     }
 
     fun generateWebPack() {
-        val start = System.nanoTime()
-        println("\tConfiguring WebPack")
-
-        val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
-        val nodeExec = variantComputer.computeNodeExec(nodeExtension, nodeBinDirProvider).get()
-
-        val npmDir = variantComputer.computeNpmDir(nodeExtension, nodeDirProvider)
-        val npmBinDir = variantComputer.computeNpmBinDir(npmDir).get().asFile.absolutePath
-        val nodeBinDir = nodeBinDirProvider.get().asFile.absolutePath
-        val nodePath = npmBinDir + File.pathSeparator + project.buildDir
-
-        // For information about webpack, SEE https://webpack.js.org/guides/getting-started/
-
-        val exec = Exec(project)
-        exec.executable = nodeExec
-        exec.path = nodePath
-        exec.workingDir = buildDir
-
-        exec.debug = debug
-        exec.suppressOutput = !debug
-
-        exec.arguments = listOf(webPackExecutableFile.path, "--config", webPackProdFile.absolutePath, "--silent")
-        exec.execute()
-
-        val ms = (System.nanoTime() - start) / 1000000
-        println("\t\tFinished in $ms ms")
+        NodeUpdaterAccess.generateWebPack(nodeInfo, webPackExecutableFile, webPackProdFile)
     }
 
     fun finish() {

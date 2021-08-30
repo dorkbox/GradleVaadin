@@ -84,7 +84,7 @@ dependencies {
 //    implementation("com.vaadin:flow-server:2.1.5")
     implementation("com.vaadin:vaadin:${Extras.vaadinVer}")
 
-    implementation("com.dorkbox:Executor:3.3")
+    implementation("com.dorkbox:Executor:3.3.2")
     implementation("com.dorkbox:Version:2.4")
 }
 

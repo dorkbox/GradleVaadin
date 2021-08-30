@@ -11,6 +11,9 @@ class NodeInfo(val project: Project) {
     val nodeExtension = NodeExtension[project]
 
     val variantComputer = VariantComputer()
+
+    val buildDir = nodeExtension.buildDir.get().asFile
+
     val nodeDirProvider = nodeExtension.workDir
     val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
     val nodeBinExec = variantComputer.computeNodeExec(nodeExtension, nodeBinDirProvider).get()
