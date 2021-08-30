@@ -314,7 +314,7 @@ class JsonPackageTools {
                 }
             }
 
-            generatedFile.writeText(lines.joinToString(separator = System.lineSeparator()), Charsets.UTF_8)
+            generatedFile.writeText(lines.joinToString(separator = "\n"))
         }
 
         /**
@@ -361,8 +361,10 @@ class JsonPackageTools {
             return null
         }
 
-        fun writeJson(jsonFile: File, jsonObject: JsonObject) {
-            println("\tSaving json: $jsonFile")
+        fun writeJson(jsonFile: File, jsonObject: JsonObject, debug: Boolean = true) {
+            if (debug) {
+                println("\tSaving json: $jsonFile")
+            }
             jsonFile.ensureParentDirsCreated()
             jsonFile.writeText(JsonUtil.stringify(jsonObject, 2) + "\n", Charsets.UTF_8)
         }
