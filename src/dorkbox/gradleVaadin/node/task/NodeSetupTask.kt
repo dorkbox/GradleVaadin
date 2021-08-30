@@ -240,7 +240,7 @@ abstract class NodeSetupTask : DefaultTask() {
         return true
     }
 
-    private fun validatePnpmInstall(debug: Boolean = false): Boolean {
+    private fun validatePnpmInstall(silent: Boolean = false): Boolean {
         // if we have pNPM configured, then we have to make sure that it is ALSO installed
         if (!pNpmScript.canRead()) {
             return false
@@ -257,7 +257,7 @@ abstract class NodeSetupTask : DefaultTask() {
             .enableRead()
             .addArg(listOf("list", "pnpm", "--depth=0"))
 
-        if (debug) {
+        if (!silent) {
             NodeUpdaterAccess.execDebug(exe)
         }
 
