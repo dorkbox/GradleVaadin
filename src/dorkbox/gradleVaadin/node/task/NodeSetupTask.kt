@@ -14,6 +14,7 @@ import dorkbox.gradleVaadin.node.util.ProjectApiHelper
 import dorkbox.gradleVaadin.node.variant.VariantComputer
 import elemental.json.Json
 import org.gradle.api.DefaultTask
+import org.gradle.api.GradleException
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.*
@@ -49,14 +50,16 @@ abstract class NodeSetupTask : DefaultTask() {
     @get:Internal
     val projectHelper = ProjectApiHelper.newInstance(project)
 
+    private val debug = VaadinConfig[project].debug
+
     private val nodeExec = variantComputer.computeNodeExec(nodeExtension)
     private val npmExec = variantComputer.computeNpmExec(nodeExtension)
     private val pNpmScript = variantComputer.computePnpmScriptFile(nodeExtension)
     private val enablePnpm = VaadinConfig[project].enablePnpm
 
-    private var nodeVersion = ""
-    private var npmVersion = ""
-    private var pNpmVersionm = ""
+    private var detectedNodeVersion = ""
+    private var detectedNpmVersion = ""
+    private var detectedPNpmVersion = ""
 
     // if there is a package.json file ALREADY here, we have to rename it so we can install pnpm.
     private val projectDir = NodeExtension[project].nodeProjectDir.get().asFile
@@ -78,41 +81,52 @@ abstract class NodeSetupTask : DefaultTask() {
     @TaskAction
     fun exec() {
         // vaadin DEV MODE looks for node in the following location: basedir + "node/node_modules/npm/bin/npm-cli.js"
-        if (nodeDir.get().asFile.exists()) {
-            var installOK = validateNodeInstall(true)
-            if (installOK && enablePnpm && !validatePnpmInstall(true)) {
-                installOK = false
-            }
+        var installNodeOK = validateNodeInstall(true)
+        var installPnpmOK = enablePnpm && validatePnpmInstall(true)
 
-            // if version info is OK, no need to download + reinstall nodejs
-            if (installOK) {
-                printLog()
 
+        // if version info is OK, no need to download + reinstall nodejs
+        if (installNodeOK && installPnpmOK) {
+            printLog()
+
+            if (debug) {
                 println("\tCurrent install is valid, skipping reinstall.")
-               return
+            }
+            return
+        }
+
+
+        if (!installNodeOK) {
+            deleteExistingNode()
+            unpackNodeArchive()
+            renameDirectory()
+            setExecutableFlag()
+            installNodeOK = validateNodeInstall()
+
+            if (!installNodeOK) {
+                throw GradleException("Node installation is corrupted. Aborting.")
             }
         }
 
-        deleteExistingNode()
-        unpackNodeArchive()
-        renameDirectory()
-        setExecutableFlag()
-        validateNodeInstall()
 
-        if (enablePnpm && !validatePnpmInstall(true)) {
+        if (enablePnpm && !installPnpmOK) {
             // have to make sure that pmpn is also installed
-            installPnpm(false)
-            validatePnpmInstall()
+            installPnpm(debug)
+            installPnpmOK = validatePnpmInstall(!debug)
+
+            if (!installPnpmOK) {
+                throw GradleException("pNPM installation is corrupted. Aborting.")
+            }
         }
 
         printLog()
     }
 
     private fun printLog() {
-        println("\tNode info: $nodeVersion [$nodeExec]")
-        println("\t NPM info: $npmVersion [$npmExec]")
+        println("\tNode info: $detectedNodeVersion [$nodeExec]")
+        println("\t NPM info: $detectedNpmVersion [$npmExec]")
         if (enablePnpm) {
-            println("\tpNPM info: $pNpmVersionm [$pNpmScript]")
+            println("\tpNPM info: $detectedPNpmVersion [$pNpmScript]")
         }
     }
 
@@ -186,7 +200,7 @@ abstract class NodeSetupTask : DefaultTask() {
     }
 
     private fun validateNodeInstall(silent: Boolean = false): Boolean {
-        if (!nodeExec.exists()) {
+        if (!nodeDir.get().asFile.exists() || !nodeExec.exists()) {
             return false
         }
 
@@ -196,7 +210,7 @@ abstract class NodeSetupTask : DefaultTask() {
                 PlatformHelper.parseVersionString(it)
             }
             var parsedVersion = Version.from(detectedVersion)
-            nodeVersion = detectedVersion
+            detectedNodeVersion = detectedVersion
 
             val SUPPORTED_NODE_VERSION = Version.from(Constants.SUPPORTED_NODE_MAJOR_VERSION, Constants.SUPPORTED_NODE_MINOR_VERSION)
             val nodeIsOK = validateToolVersion("node", parsedVersion, SUPPORTED_NODE_VERSION, silent)
@@ -209,7 +223,7 @@ abstract class NodeSetupTask : DefaultTask() {
                 PlatformHelper.parseVersionString(it)
             }
             parsedVersion = Version.from(detectedVersion)
-            npmVersion = detectedVersion
+            detectedNpmVersion = detectedVersion
 
 
             val SUPPORTED_NPM_VERSION = Version.from(Constants.SUPPORTED_NPM_MAJOR_VERSION, Constants.SUPPORTED_NPM_MINOR_VERSION)
@@ -226,10 +240,14 @@ abstract class NodeSetupTask : DefaultTask() {
         return true
     }
 
-    private fun validatePnpmInstall(silent: Boolean = false): Boolean {
+    private fun validatePnpmInstall(debug: Boolean = false): Boolean {
         // if we have pNPM configured, then we have to make sure that it is ALSO installed
         if (!pNpmScript.canRead()) {
             return false
+        }
+
+        if (pnpmVersion.length < 4) {
+            throw GradleException("pNPM version [$pnpmVersion] is invalid!")
         }
 
         val exe = Executor()
@@ -239,22 +257,35 @@ abstract class NodeSetupTask : DefaultTask() {
             .enableRead()
             .addArg(listOf("list", "pnpm", "--depth=0"))
 
-//        NodeUpdaterAccess.execDebug(exe)
+        if (debug) {
+            NodeUpdaterAccess.execDebug(exe)
+        }
 
         val result = exe.startBlocking()
         val output = result.output.utf8()
-        val index = output.indexOf('@') + 1
+        val index = output.indexOf("pnpm@")
         if (index < 2) {
             return false
         }
 
-        val detectedVersion = output.substring(index, output.length).trim()
+//        println("OUTPUT: [$output]")
+
+        val detectedVersion = output.substring(index + 5, output.length).trim().let {
+            val firstWhiteSpace = it.indexOf(' ')
+            if (firstWhiteSpace > 0) {
+                it.substring(0, firstWhiteSpace)
+            } else {
+                it
+            }
+        }
+
+        println("pNPM VERSION CHECK! [$detectedVersion] :: $pnpmVersion")
         if (detectedVersion != pnpmVersion) {
-            println("FAILED VERSION CHECK! $detectedVersion :: $pnpmVersion")
+            println("pNPM FAILED VERSION CHECK! [$detectedVersion] :: $pnpmVersion")
             return false
         }
 
-        pNpmVersionm = detectedVersion
+        detectedPNpmVersion = detectedVersion
         return true
     }
 
@@ -264,7 +295,10 @@ abstract class NodeSetupTask : DefaultTask() {
             println("\tpNPM installation requested, installing")
         }
 
-        projectDir.resolve("node_modules").mkdir()
+        val modulesDir = projectDir.resolve("node_modules")
+        if (!modulesDir.exists() && !modulesDir.mkdir()) {
+            throw GradleException("Unable to create $modulesDir")
+        }
 
         val jsonFile = projectDir.resolve("package.json")
         val jsonFileTemp = projectDir.resolve("package.json.temp")
