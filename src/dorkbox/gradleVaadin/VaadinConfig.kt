@@ -15,6 +15,7 @@
  */
 package dorkbox.gradleVaadin
 
+import com.vaadin.flow.server.frontend.FrontendTools
 import org.gradle.api.Project
 import org.gradle.api.tasks.Input
 import org.gradle.kotlin.dsl.getByType
@@ -39,13 +40,22 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
 
     // the gradle property model is retarded, but sadly the "right way to do it"
     @get:Input
-    internal var debug_ = project.objects.property<Boolean>().convention(false)
+    protected var debug_ = project.objects.property<Boolean>().convention(false)
     var debug: Boolean
     get() { return debug_.get() }
     set(value) { debug_.set(value)}
 
+
+    // the gradle property model is retarded, but sadly the "right way to do it"
     @get:Input
-    internal var flowDirectory_ = project.objects.property<String>().convention("./${com.vaadin.flow.server.frontend.FrontendUtils.FRONTEND}")
+    protected var enablePnpm_ = project.objects.property<Boolean>().convention(false)
+    var enablePnpm: Boolean
+        get() { return enablePnpm_.get() }
+        set(value) { enablePnpm_.set(value)}
+
+
+    @get:Input
+    protected var flowDirectory_ = project.objects.property<String>().convention("./${com.vaadin.flow.server.frontend.FrontendUtils.FRONTEND}")
     var flowDirectory: String
     get() { return flowDirectory_.get() }
     set(value) { flowDirectory_.set(value)}
@@ -55,11 +65,21 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
      * Version of node to download and install
      */
     @get:Input
-    var nodeVersion = "13.7.0"
+    var nodeVersion = FrontendTools.DEFAULT_NODE_VERSION
     set(value) {
         field = value
         NodeExtension[project].version.set(value)
     }
+
+    /**
+     * Version of PNPM to download and install
+     */
+    @get:Input
+    var pnpmVersion = FrontendTools.DEFAULT_PNPM_VERSION
+//    set(value) {
+//        field = value
+//        NodeExtension[project].version.set(value)
+//    }
 
     @get:Input
     var vaadinVersion = "14.1.17"
