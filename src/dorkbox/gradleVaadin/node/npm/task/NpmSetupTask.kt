@@ -45,8 +45,7 @@ abstract class NpmSetupTask : DefaultTask() {
     @get:OutputDirectory
     val npmDir by lazy {
         val variantComputer = VariantComputer()
-        val nodeDir = variantComputer.computeNodeDir(nodeExtension)
-        variantComputer.computeNpmDir(nodeExtension, nodeDir)
+        variantComputer.computeNpmDir(nodeExtension, nodeExtension.workDir)
     }
 
     init {

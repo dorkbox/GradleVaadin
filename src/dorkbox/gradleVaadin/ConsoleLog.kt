@@ -23,6 +23,9 @@ class ConsoleLog(val name_: String = "",
         val ERROR = 40
     }
 
+    @Volatile
+    var enable = true
+
     /**
      * Is the given log level currently enabled?
      *
@@ -446,10 +449,12 @@ class ConsoleLog(val name_: String = "",
      * @param t
      */
     fun write(buf: java.lang.StringBuilder, t: Throwable?) {
-        synchronized(CONFIG_PARAMS) {
-            targetStream.println(buf.toString())
-            writeThrowable(t, targetStream)
-            targetStream.flush()
+        if (enable) {
+            synchronized(CONFIG_PARAMS) {
+                targetStream.println(buf.toString())
+                writeThrowable(t, targetStream)
+                targetStream.flush()
+            }
         }
     }
 

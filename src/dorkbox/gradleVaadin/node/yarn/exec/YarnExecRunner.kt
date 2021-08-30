@@ -20,7 +20,7 @@ internal abstract class YarnExecRunner {
     private val variantComputer = VariantComputer()
 
     fun executeYarnCommand(project: ProjectApiHelper, nodeExtension: NodeExtension, nodeExecConfiguration: NodeExecConfiguration) {
-        val nodeDirProvider = variantComputer.computeNodeDir(nodeExtension)
+        val nodeDirProvider = nodeExtension.workDir
         val yarnDirProvider = variantComputer.computeYarnDir(nodeExtension)
         val yarnBinDirProvider = variantComputer.computeYarnBinDir(yarnDirProvider)
         val yarnExecProvider = variantComputer.computeYarnExec(nodeExtension, yarnBinDirProvider)

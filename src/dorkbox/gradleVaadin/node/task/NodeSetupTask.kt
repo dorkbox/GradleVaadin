@@ -279,7 +279,6 @@ abstract class NodeSetupTask : DefaultTask() {
             }
         }
 
-        println("pNPM VERSION CHECK! [$detectedVersion] :: $pnpmVersion")
         if (detectedVersion != pnpmVersion) {
             println("pNPM FAILED VERSION CHECK! [$detectedVersion] :: $pnpmVersion")
             return false

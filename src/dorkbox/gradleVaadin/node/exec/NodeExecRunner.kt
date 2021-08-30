@@ -17,7 +17,7 @@ internal class NodeExecRunner {
     private fun buildExecConfiguration(nodeExtension: NodeExtension, nodeExecConfiguration: NodeExecConfiguration):
             Provider<ExecConfiguration> {
         val variantComputer = VariantComputer()
-        val nodeDirProvider = variantComputer.computeNodeDir(nodeExtension)
+        val nodeDirProvider = nodeExtension.workDir
         val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
         val executableProvider = variantComputer.computeNodeExec(nodeExtension, nodeBinDirProvider)
         val additionalBinPathProvider = computeAdditionalBinPath(nodeExtension, nodeBinDirProvider)

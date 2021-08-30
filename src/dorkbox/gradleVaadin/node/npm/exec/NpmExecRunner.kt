@@ -75,17 +75,16 @@ internal abstract class NpmExecRunner {
 
     private fun computeExecutable(nodeExtension: NodeExtension, npmExecConfiguration: NpmExecConfiguration):
             Provider<ExecutableAndScript> {
-        val nodeDirProvider = variantComputer.computeNodeDir(nodeExtension)
+        val nodeDirProvider = nodeExtension.workDir
         val npmDirProvider = variantComputer.computeNpmDir(nodeExtension, nodeDirProvider)
         val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
         val npmBinDirProvider = variantComputer.computeNpmBinDir(npmDirProvider)
         val nodeExecProvider = variantComputer.computeNodeExec(nodeExtension, nodeBinDirProvider)
         val executableProvider =
                 npmExecConfiguration.commandExecComputer(variantComputer, nodeExtension, npmBinDirProvider)
-        val npmScriptFileProvider =
-                variantComputer.computeNpmScriptFile(nodeDirProvider, npmExecConfiguration.command)
-        return zip(nodeExtension.download, nodeExtension.nodeProjectDir, executableProvider, nodeExecProvider,
-                npmScriptFileProvider).map {
+        val npmScriptFileProvider = variantComputer.computeNpmScriptProvider(nodeDirProvider, npmExecConfiguration.command)
+
+        return zip(nodeExtension.download, nodeExtension.nodeProjectDir, executableProvider, nodeExecProvider, npmScriptFileProvider).map {
             val (download, nodeProjectDir, executable, nodeExec,
                     npmScriptFile) = it
             if (download) {
@@ -111,7 +110,7 @@ internal abstract class NpmExecRunner {
             if (!download) {
                 providers.provider { listOf<String>() }
             }
-            val nodeDirProvider = variantComputer.computeNodeDir(nodeExtension)
+            val nodeDirProvider = nodeExtension.workDir
             val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
             val npmDirProvider = variantComputer.computeNpmDir(nodeExtension, nodeDirProvider)
             val npmBinDirProvider = variantComputer.computeNpmBinDir(npmDirProvider)
