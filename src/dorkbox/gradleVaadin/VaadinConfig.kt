@@ -25,9 +25,12 @@ import java.io.File
 
 open class VaadinConfig(private val project: Project): java.io.Serializable {
     companion object {
-        const val NAME = "node"
-        const val DEFAULT_NODE_VERSION = "14.15.4"
+        // we are locked to this version number! any change to this must reflect changes to our API, and how we access vaadin
+        // so tests must be run to make sure our api is compatible with this release
+        const val VAADIN_VERSION = "14.4.8"
         const val DEFAULT_NPM_VERSION = "6.14.10"
+
+        const val NAME = "node"
 
         @JvmStatic
         operator fun get(project: Project): VaadinConfig {
@@ -41,6 +44,10 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
     }
     // the gradle property model is retarded, but sadly the "right way to do it"
 
+    val version = VAADIN_VERSION
+
+
+
 
     // this changes if the build production task is run. WE DO NOT MANUALLY CHANGE THIS, it is automatic!
     internal var productionMode = project.objects.property<Boolean>().convention(false)
@@ -50,12 +57,11 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
         return buildDir.resolve("node_modules")
     }
 
-
     /**
      * Directory where all of the source code lives
      */
     @get:Input
-    protected var sourceRootDir_ = project.objects.property<File>().convention(project.rootDir)
+    protected var sourceRootDir_ = project.objects.property<File>().convention(project.projectDir)
     var sourceRootDir: File
         get() { return sourceRootDir_.get() }
         set(value) { sourceRootDir_.set(value)}
@@ -66,7 +72,7 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
      * Also where package.json and the node_modules directory are located
      */
     @get:Input
-    internal var buildDir_ = project.objects.property<File>().convention(project.buildDir)
+    protected var buildDir_ = project.objects.property<File>().convention(project.buildDir)
     var buildDir: File
         get() { return buildDir_.get() }
         set(value) { buildDir_.set(value)}
@@ -80,7 +86,7 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
     set(value) { debug_.set(value)}
 
 
-    // the gradle property model is retarded, but sadly the "right way to do it"
+    // the gradle property model is retarded,`` but sadly the "right way to do it"
     @get:Input
     protected var enablePnpm_ = project.objects.property<Boolean>().convention(false)
     var enablePnpm: Boolean
@@ -95,15 +101,9 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
     set(value) { flowDirectory_.set(value)}
 
 
-    /**
-     * Version of node to download and install
-     */
-    @get:Input
-    var nodeVersion = FrontendTools.DEFAULT_NODE_VERSION
-    set(value) {
-        field = value
-        version.set(value)
-    }
+
+
+
 
     /**
      * Version of PNPM to download and install
@@ -114,9 +114,6 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
 //        field = value
 //        NodeExtension[project].version.set(value)
 //    }
-
-    @get:Input
-    var vaadinVersion = "14.1.17"
 
     // undertowVersion
 
@@ -186,7 +183,17 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
      * Version of node to download and install (only used if download is true)
      * It will be unpacked in the workDir
      */
-    val version = project.objects.property<String>().convention(DEFAULT_NODE_VERSION)
+    @get:Input
+    protected val nodeVersion_ = project.objects.property<String>().convention(FrontendTools.DEFAULT_NODE_VERSION)
+    var nodeVersion: String
+        get() { return nodeVersion_.get().let {
+            if (it.toLowerCase().startsWith('v')) {
+                it
+            } else {
+                "v$it"
+            }
+        } }
+        set(value) { nodeVersion_.set(value)}
 
     /**
      * Version of npm to use

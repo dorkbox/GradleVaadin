@@ -95,8 +95,7 @@ internal abstract class NpmExecRunner {
         val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
         val npmBinDirProvider = variantComputer.computeNpmBinDir(npmDirProvider)
         val nodeExecProvider = variantComputer.computeNodeExec(vaadinConfig, nodeBinDirProvider)
-        val executableProvider =
-                npmExecConfiguration.commandExecComputer(variantComputer, vaadinConfig, npmBinDirProvider)
+        val executableProvider = npmExecConfiguration.commandExecComputer(variantComputer, vaadinConfig, npmBinDirProvider)
         val npmScriptFileProvider = variantComputer.computeNpmScriptProvider(nodeDirProvider, npmExecConfiguration.command)
 
 
@@ -117,10 +116,7 @@ internal abstract class NpmExecRunner {
         }
     }
 
-    private data class ExecutableAndScript(
-            val executable: String,
-            val script: String? = null
-    )
+    private data class ExecutableAndScript(val executable: String, val script: String? = null)
 
     private fun computeAdditionalBinPath(vaadinConfig: VaadinConfig): Provider<List<String>> {
         return vaadinConfig.download.flatMap { download ->

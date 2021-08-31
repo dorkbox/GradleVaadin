@@ -100,7 +100,7 @@ class Vaadin : Plugin<Project> {
         }
 
         project.dependencies.apply {
-            add("implementation", "com.vaadin:vaadin:${config.vaadinVersion}")
+            add("implementation", "com.vaadin:vaadin:${VaadinConfig.VAADIN_VERSION}")
             add("implementation", "com.dorkbox:VaadinUndertow:0.1")
         }
 
@@ -120,9 +120,13 @@ class Vaadin : Plugin<Project> {
                 VaadinConfig[project].productionMode.set(true)
             }
 
-            if (config.download.get()) {
-                config.distBaseUrl.orNull?.let { addRepository(it) }
-                configureNodeSetupTask(config)
+            try {
+                if (config.download.get()) {
+                    config.distBaseUrl.orNull?.let { addNodeRepository(it) }
+                    configureNodeSetupTask(config)
+                }
+            } catch (e: Exception) {
+                println("Unable to configure NodeJS repository: ${config.nodeVersion}")
             }
 
             VaadinConfig[project].vaadinCompiler.log()
@@ -328,12 +332,12 @@ class Vaadin : Plugin<Project> {
         }
     }
 
-    private fun addRepository(distUrl: String) {
+    private fun addNodeRepository(distUrl: String) {
         project.repositories.ivy {
             name = "Node.js"
             setUrl(distUrl)
             patternLayout {
-                artifact("v[revision]/[artifact](-v[revision]-[classifier]).[ext]")
+                artifact("[revision]/[artifact](-[revision]-[classifier]).[ext]")
             }
             metadataSources {
                 artifact()
@@ -346,13 +350,15 @@ class Vaadin : Plugin<Project> {
 
     private fun configureNodeSetupTask(vaadinConfig: VaadinConfig) {
         val variantComputer = VariantComputer()
-        val nodeArchiveDependencyProvider = variantComputer.computeNodeArchiveDependency(vaadinConfig)
-        val archiveFileProvider = nodeArchiveDependencyProvider.map { nodeArchiveDependency ->
-            resolveNodeArchiveFile(nodeArchiveDependency)
-        }
+        val nodeArchiveDependency = variantComputer.computeNodeArchiveDependency(vaadinConfig)
+        val archiveFileProvider = resolveNodeArchiveFile(nodeArchiveDependency)
 
         project.tasks.named<NodeSetupTask>(NodeSetupTask.NAME) {
-            nodeArchiveFile.set(project.layout.file(archiveFileProvider))
+            val provider = project.objects.fileProperty().apply {
+                set(archiveFileProvider)
+            }.asFile
+
+            nodeArchiveFile.set(project.layout.file(provider))
         }
     }
 

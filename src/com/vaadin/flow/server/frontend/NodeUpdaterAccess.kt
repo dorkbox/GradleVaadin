@@ -217,7 +217,12 @@ class NodeUpdaterAccess(
         }
 
         fun getJsonFileContent(packageFile: File): JsonObject {
-            return NodeUpdater.getJsonFileContent(packageFile) ?: Json.createObject()
+            return try {
+                NodeUpdater.getJsonFileContent(packageFile) ?: Json.createObject()
+            } catch (e: Exception) {
+                println("\tCould not read contents of file $packageFile")
+                Json.createObject()
+            }
         }
 
         fun disableVaadinStatistics(packageJson: JsonObject) {

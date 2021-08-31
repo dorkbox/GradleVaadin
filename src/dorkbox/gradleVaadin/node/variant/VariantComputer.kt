@@ -12,7 +12,7 @@ class VariantComputer @JvmOverloads constructor(private val platformHelper: Plat
     fun computeExtractionName(vaadinConfig: VaadinConfig): String {
         val osName = platformHelper.osName
         val osArch = platformHelper.osArch
-        return "node-v${vaadinConfig.version.get()}-$osName-$osArch"
+        return "node-${vaadinConfig.nodeVersion}-$osName-$osArch"
     }
 
 
@@ -137,10 +137,12 @@ class VariantComputer @JvmOverloads constructor(private val platformHelper: Plat
     private fun computeProductBinDir(productDirProvider: Provider<Directory>) =
             if (platformHelper.isWindows) productDirProvider else productDirProvider.map { it.dir("bin") }
 
-    fun computeNodeArchiveDependency(vaadinConfig: VaadinConfig): Provider<String> {
+    fun computeNodeArchiveDependency(vaadinConfig: VaadinConfig): String {
         val osName = platformHelper.osName
         val osArch = platformHelper.osArch
         val type = if (platformHelper.isWindows) "zip" else "tar.gz"
-        return vaadinConfig.version.map { version -> "org.nodejs:node:$version:$osName-$osArch@$type" }
+
+        return "org.nodejs:node:${vaadinConfig.nodeVersion}:$osName-$osArch@$type"
+
     }
 }

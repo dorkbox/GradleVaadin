@@ -67,8 +67,7 @@ abstract class NpmTask : DefaultTask() {
     fun exec() {
         val command = npmCommand.get().plus(args.get())
         val nodeExecConfiguration =
-                NodeExecConfiguration(command, environment.get(), workingDir.asFile.orNull, ignoreExitValue.get(),
-                        execOverrides.orNull)
+                NodeExecConfiguration(command, environment.get(), workingDir.asFile.orNull, ignoreExitValue.get(), execOverrides.orNull)
         val npmExecRunner = objects.newInstance(NpmExecRunner::class.java)
         npmExecRunner.executeNpmCommand(project, projectHelper, vaadinConfig, nodeExecConfiguration)
     }

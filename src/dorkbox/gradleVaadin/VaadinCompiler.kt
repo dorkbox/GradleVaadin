@@ -25,13 +25,12 @@ import java.io.File
  */
 @Suppress("MemberVisibilityCanBePrivate")
 internal class VaadinCompiler(val project: Project) {
-    private val vaadinConfig = VaadinConfig[project]
+    private val config = VaadinConfig[project]
 
-    val baseDir = vaadinConfig.sourceRootDir
+    val baseDir = config.sourceRootDir
+    val buildDir = config.buildDir
 
-    val debug = vaadinConfig.debug
 
-    val buildDir = project.buildDir.absoluteFile
     val frontendDir = baseDir.resolve(FrontendUtils.FRONTEND)
 
     val webAppDir = baseDir.resolve("resources")
@@ -50,7 +49,7 @@ internal class VaadinCompiler(val project: Project) {
     val webPackProdFile = buildDir.resolve("webpack.production.js")
 
     val buildDirJsonPackageFile = buildDir.resolve(Constants.PACKAGE_JSON)
-    val flowJsonPackageFile = buildDir.resolve(vaadinConfig.flowDirectory).resolve(Constants.PACKAGE_JSON)
+    val flowJsonPackageFile = buildDir.resolve(config.flowDirectory).resolve(Constants.PACKAGE_JSON)
     val generatedNodeModules = buildDir.resolve(FrontendUtils.NODE_MODULES)
     val webPackExecutableFile = generatedNodeModules.resolve("webpack").resolve("bin").resolve("webpack.js")
 
@@ -108,10 +107,13 @@ internal class VaadinCompiler(val project: Project) {
     }
 
     fun log() {
-        if (debug) {
+        if (config.debug) {
+            println("\t\tVaadin version: ${VaadinConfig.VAADIN_VERSION}")
             println("\t\tPolymer version: $polymerVersion")
             println("\t\tBase Dir: $baseDir")
+            println("\t\tBuild Dir: $buildDir")
             println("\t\tNode Dir: ${VaadinConfig[project].nodeJsDir.get().asFile}")
+
             println("\t\tGenerated Dir: $frontendGeneratedDir")
             println("\t\tWebPack Executable: $webPackExecutableFile")
 
@@ -149,7 +151,7 @@ internal class VaadinCompiler(val project: Project) {
         NodeUpdaterAccess.createMissingPackageJson(buildDir, locationOfGeneratedJsonForFlowDependencies)
 
         // now we have to update the package.json file with whatever version of into we have specified on the classpath
-        NodeUpdaterAccess.enablePackagesUpdate(customClassFinder, frontendDependencies, buildDir, vaadinConfig.enablePnpm, nodeInfo)
+        NodeUpdaterAccess.enablePackagesUpdate(customClassFinder, frontendDependencies, buildDir, config.enablePnpm, nodeInfo)
     }
 
     fun prepareWebpackFiles() {
@@ -188,7 +190,7 @@ internal class VaadinCompiler(val project: Project) {
     }
 
     fun createTokenFile() {
-        val productionMode = vaadinConfig.productionMode.get()
+        val productionMode = config.productionMode.get()
 
         println("\tCreating configuration token file: $tokenFile")
         println("\tProduction mode: $productionMode")
@@ -200,7 +202,7 @@ internal class VaadinCompiler(val project: Project) {
         buildInfo.put(InitParameters.SERVLET_PARAMETER_COMPATIBILITY_MODE, false)
         buildInfo.put(InitParameters.SERVLET_PARAMETER_PRODUCTION_MODE, productionMode)
         buildInfo.put("polymer.version", polymerVersion)
-        buildInfo.put("pnpm.enabled", vaadinConfig.enablePnpm) // matches vaadin application launcher
+        buildInfo.put("pnpm.enabled", config.enablePnpm) // matches vaadin application launcher
 
         // used for defining folder paths for dev server
         if (!productionMode) {
@@ -213,7 +215,7 @@ internal class VaadinCompiler(val project: Project) {
 
         JsonPackageTools.writeJson(tokenFile, buildInfo)
 
-        if (debug) {
+        if (config.debug) {
             println("\tToken content:\n ${tokenFile.readText(Charsets.UTF_8)}")
         }
     }
