@@ -21,7 +21,7 @@ import java.net.URI
 
 
 /**
- *                  flow-server-2.3.5
+ *                  flow-server-2.4.6
  */
 class NodeUpdaterAccess(
     finder: ClassFinder?,
