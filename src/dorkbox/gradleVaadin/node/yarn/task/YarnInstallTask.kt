@@ -47,25 +47,26 @@ abstract class YarnInstallTask : YarnTask() {
     }
 
     private fun projectFileIfExists(name: String): Provider<File> {
-        return nodeExtension.nodeProjectDir.map { it.file(name).asFile }
-                .flatMap { if (it.exists()) providers.provider { it } else providers.provider { null } }
+        return vaadinConfig.buildDir.resolve(name).let {
+            if (it.exists()) providers.provider { it }
+            else providers.provider { null }
+        }
     }
 
     @Optional
     @OutputDirectory
     @Suppress("unused")
     protected fun getNodeModulesDirectory(): Provider<Directory> {
-        val filter = nodeModulesOutputFilter.orNull
-        return if (filter == null) nodeExtension.nodeProjectDir.dir("node_modules")
-        else providers.provider { null }
+        return providers.provider {
+            project.objects.directoryProperty().apply { set(vaadinConfig.nodeModulesDir) }.get()
+        }
     }
 
     @Optional
     @OutputFiles
     @Suppress("unused")
     protected fun getNodeModulesFiles(): Provider<FileTree> {
-        val nodeModulesDirectoryProvider = nodeExtension.nodeProjectDir.dir("node_modules")
-        return zip(nodeModulesDirectoryProvider, nodeModulesOutputFilter)
+        return zip(getNodeModulesDirectory(), nodeModulesOutputFilter)
                 .flatMap { (nodeModulesDirectory, nodeModulesOutputFilter) ->
                     if (nodeModulesOutputFilter != null) {
                         val fileTree = projectHelper.fileTree(nodeModulesDirectory)

@@ -1,18 +1,17 @@
 package dorkbox.gradleVaadin.node.exec
 
-import dorkbox.gradleVaadin.NodeExtension
+import dorkbox.gradleVaadin.VaadinConfig
 import dorkbox.gradleVaadin.node.util.ProjectApiHelper
-import org.gradle.api.file.DirectoryProperty
 import java.io.File
 
 internal class ExecRunner {
-    fun execute(projectHelper: ProjectApiHelper, extension: NodeExtension, execConfiguration: ExecConfiguration) {
+    fun execute(projectHelper: ProjectApiHelper, extension: VaadinConfig, execConfiguration: ExecConfiguration) {
         projectHelper.exec {
             executable = execConfiguration.executable
             args = execConfiguration.args
             environment = computeEnvironment(execConfiguration)
             isIgnoreExitValue = execConfiguration.ignoreExitValue
-            workingDir = computeWorkingDir(extension.nodeProjectDir, execConfiguration)
+            workingDir = computeWorkingDir(extension.buildDir, execConfiguration)
             execConfiguration.execOverrides?.execute(this)
         }
     }
@@ -33,8 +32,8 @@ internal class ExecRunner {
         return execEnvironment
     }
 
-    private fun computeWorkingDir(nodeProjectDir: DirectoryProperty, execConfiguration: ExecConfiguration): File? {
-        val workingDir = execConfiguration.workingDir ?: nodeProjectDir.get().asFile
+    private fun computeWorkingDir(nodeProjectDir: File, execConfiguration: ExecConfiguration): File? {
+        val workingDir = execConfiguration.workingDir ?: nodeProjectDir
         workingDir.mkdirs()
         return workingDir
     }

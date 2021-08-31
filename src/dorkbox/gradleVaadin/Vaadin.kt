@@ -88,7 +88,7 @@ class Vaadin : Plugin<Project> {
         apply("java")
 
         // Create the Plugin extension object (for users to configure publishing).
-        config = project.extensions.create("vaadin", VaadinConfig::class.java, project)
+        config = VaadinConfig.create(project)
 
         // have to create the task
         project.tasks.create("prepare_jar_libraries", PrepJarsTask::class.java)
@@ -106,7 +106,6 @@ class Vaadin : Plugin<Project> {
 
         // NOTE: NPM will ALWAYS install packages to the "node_modules" directory that is a sibling to the packages.json directory!
 
-        val nodeExtension = NodeExtension.create(project)
         addGlobalTypes()
         addTasks()
         addNpmRule()
@@ -121,9 +120,9 @@ class Vaadin : Plugin<Project> {
                 VaadinConfig[project].productionMode.set(true)
             }
 
-            if (nodeExtension.download.get()) {
-                nodeExtension.distBaseUrl.orNull?.let { addRepository(it) }
-                configureNodeSetupTask(nodeExtension)
+            if (config.download.get()) {
+                config.distBaseUrl.orNull?.let { addRepository(it) }
+                configureNodeSetupTask(config)
             }
 
             VaadinConfig[project].vaadinCompiler.log()
@@ -345,9 +344,9 @@ class Vaadin : Plugin<Project> {
         }
     }
 
-    private fun configureNodeSetupTask(nodeExtension: NodeExtension) {
+    private fun configureNodeSetupTask(vaadinConfig: VaadinConfig) {
         val variantComputer = VariantComputer()
-        val nodeArchiveDependencyProvider = variantComputer.computeNodeArchiveDependency(nodeExtension)
+        val nodeArchiveDependencyProvider = variantComputer.computeNodeArchiveDependency(vaadinConfig)
         val archiveFileProvider = nodeArchiveDependencyProvider.map { nodeArchiveDependency ->
             resolveNodeArchiveFile(nodeArchiveDependency)
         }

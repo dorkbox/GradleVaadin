@@ -1,7 +1,7 @@
 package dorkbox.gradleVaadin.node.yarn.task
 
-import dorkbox.gradleVaadin.NodeExtension
 import dorkbox.gradleVaadin.Vaadin
+import dorkbox.gradleVaadin.VaadinConfig
 import dorkbox.gradleVaadin.node.exec.NodeExecConfiguration
 import dorkbox.gradleVaadin.node.util.ProjectApiHelper
 import dorkbox.gradleVaadin.node.yarn.exec.YarnExecRunner
@@ -51,7 +51,7 @@ abstract class YarnTask : DefaultTask() {
     val projectHelper = ProjectApiHelper.newInstance(project)
 
     @get:Internal
-    val nodeExtension = NodeExtension[project]
+    val vaadinConfig = VaadinConfig[project]
 
     init {
         group = Vaadin.NODE_GROUP
@@ -71,6 +71,6 @@ abstract class YarnTask : DefaultTask() {
                 NodeExecConfiguration(command, environment.get(), workingDir.asFile.orNull,
                         ignoreExitValue.get(), execOverrides.orNull)
         val yarnExecRunner = objects.newInstance(YarnExecRunner::class.java)
-        yarnExecRunner.executeYarnCommand(projectHelper, nodeExtension, nodeExecConfiguration)
+        yarnExecRunner.executeYarnCommand(projectHelper, vaadinConfig, nodeExecConfiguration)
     }
 }

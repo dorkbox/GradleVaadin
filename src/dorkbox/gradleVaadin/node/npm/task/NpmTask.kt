@@ -1,7 +1,7 @@
 package dorkbox.gradleVaadin.node.npm.task
 
-import dorkbox.gradleVaadin.NodeExtension
 import dorkbox.gradleVaadin.Vaadin
+import dorkbox.gradleVaadin.VaadinConfig
 import dorkbox.gradleVaadin.node.exec.NodeExecConfiguration
 import dorkbox.gradleVaadin.node.npm.exec.NpmExecRunner
 import dorkbox.gradleVaadin.node.util.ProjectApiHelper
@@ -50,7 +50,7 @@ abstract class NpmTask : DefaultTask() {
     val projectHelper = ProjectApiHelper.newInstance(project)
 
     @get:Internal
-    val nodeExtension = NodeExtension[project]
+    val vaadinConfig = VaadinConfig[project]
 
     init {
         group = Vaadin.NPM_GROUP
@@ -70,6 +70,6 @@ abstract class NpmTask : DefaultTask() {
                 NodeExecConfiguration(command, environment.get(), workingDir.asFile.orNull, ignoreExitValue.get(),
                         execOverrides.orNull)
         val npmExecRunner = objects.newInstance(NpmExecRunner::class.java)
-        npmExecRunner.executeNpmCommand(projectHelper, nodeExtension, nodeExecConfiguration)
+        npmExecRunner.executeNpmCommand(project, projectHelper, vaadinConfig, nodeExecConfiguration)
     }
 }

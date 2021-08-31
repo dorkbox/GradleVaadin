@@ -16,6 +16,8 @@ import org.gradle.api.tasks.SourceSetContainer
 import org.jetbrains.kotlin.gradle.internal.ensureParentDirsCreated
 import java.io.File
 
+
+
 /**
  * For more info, see:
  *   https://github.com/vaadin/flow/tree/master/flow-maven-plugin\
@@ -23,9 +25,11 @@ import java.io.File
  */
 @Suppress("MemberVisibilityCanBePrivate")
 internal class VaadinCompiler(val project: Project) {
-    val baseDir = project.rootDir
+    private val vaadinConfig = VaadinConfig[project]
 
-    val debug = VaadinConfig[project].debug
+    val baseDir = vaadinConfig.sourceRootDir
+
+    val debug = vaadinConfig.debug
 
     val buildDir = project.buildDir.absoluteFile
     val frontendDir = baseDir.resolve(FrontendUtils.FRONTEND)
@@ -46,7 +50,7 @@ internal class VaadinCompiler(val project: Project) {
     val webPackProdFile = buildDir.resolve("webpack.production.js")
 
     val buildDirJsonPackageFile = buildDir.resolve(Constants.PACKAGE_JSON)
-    val flowJsonPackageFile = buildDir.resolve(VaadinConfig[project].flowDirectory).resolve(Constants.PACKAGE_JSON)
+    val flowJsonPackageFile = buildDir.resolve(vaadinConfig.flowDirectory).resolve(Constants.PACKAGE_JSON)
     val generatedNodeModules = buildDir.resolve(FrontendUtils.NODE_MODULES)
     val webPackExecutableFile = generatedNodeModules.resolve("webpack").resolve("bin").resolve("webpack.js")
 
@@ -107,7 +111,7 @@ internal class VaadinCompiler(val project: Project) {
         if (debug) {
             println("\t\tPolymer version: $polymerVersion")
             println("\t\tBase Dir: $baseDir")
-            println("\t\tNode Dir: ${NodeExtension[project].workDir.asFile}")
+            println("\t\tNode Dir: ${VaadinConfig[project].nodeJsDir.get().asFile}")
             println("\t\tGenerated Dir: $frontendGeneratedDir")
             println("\t\tWebPack Executable: $webPackExecutableFile")
 
@@ -145,7 +149,7 @@ internal class VaadinCompiler(val project: Project) {
         NodeUpdaterAccess.createMissingPackageJson(buildDir, locationOfGeneratedJsonForFlowDependencies)
 
         // now we have to update the package.json file with whatever version of into we have specified on the classpath
-        NodeUpdaterAccess.enablePackagesUpdate(customClassFinder, frontendDependencies, buildDir, VaadinConfig[project].enablePnpm, nodeInfo)
+        NodeUpdaterAccess.enablePackagesUpdate(customClassFinder, frontendDependencies, buildDir, vaadinConfig.enablePnpm, nodeInfo)
     }
 
     fun prepareWebpackFiles() {
@@ -184,7 +188,7 @@ internal class VaadinCompiler(val project: Project) {
     }
 
     fun createTokenFile() {
-        val productionMode = VaadinConfig[project].productionMode.get()
+        val productionMode = vaadinConfig.productionMode.get()
 
         println("\tCreating configuration token file: $tokenFile")
         println("\tProduction mode: $productionMode")
@@ -196,7 +200,7 @@ internal class VaadinCompiler(val project: Project) {
         buildInfo.put(InitParameters.SERVLET_PARAMETER_COMPATIBILITY_MODE, false)
         buildInfo.put(InitParameters.SERVLET_PARAMETER_PRODUCTION_MODE, productionMode)
         buildInfo.put("polymer.version", polymerVersion)
-        buildInfo.put("pnpm.enabled", VaadinConfig[project].enablePnpm) // matches vaadin application launcher
+        buildInfo.put("pnpm.enabled", vaadinConfig.enablePnpm) // matches vaadin application launcher
 
         // used for defining folder paths for dev server
         if (!productionMode) {
@@ -228,46 +232,46 @@ internal class VaadinCompiler(val project: Project) {
         println("\tUpdating package dependency and hash information")
 
 
-        val origPackageJson = JsonPackageTools.getOrCreateJson(jsonPackageFile)
-        val generatedPackageJson = JsonPackageTools.getOrCreateJson(buildDirJsonPackageFile)
+//        val origPackageJson = JsonPackageTools.getOrCreateJson(buildDirJsonPackageFile)
+//        val generatedPackageJson = JsonPackageTools.getOrCreateJson(buildDirJsonPackageFile)
 
-        // will also make sure that all of the contents from the original file are in the generated file.
-        val didCleanup = JsonPackageTools.updateGeneratedPackageJsonDependencies(
-            origPackageJson,
-            generatedPackageJson,
-            frontendDependencies.packages,
-            jsonPackageFile, buildDirJsonPackageFile, generatedNodeModules, jsonPackageLockFile
-        )
+//        // will also make sure that all of the contents from the original file are in the generated file.
+//        val didCleanup = JsonPackageTools.updateGeneratedPackageJsonDependencies(
+//            origPackageJson,
+//            generatedPackageJson,
+//            frontendDependencies.packages,
+//            jsonPackageFile, buildDirJsonPackageFile, generatedNodeModules, jsonPackageLockFile
+//        )
+//
+//        val hashIsModified = JsonPackageTools.updatePackageHash(generatedPackageJson)
+//        if (hashIsModified) {
+//            println("\tPackage dependencies were modified!")
+//        }
 
-        val hashIsModified = JsonPackageTools.updatePackageHash(generatedPackageJson)
-        if (hashIsModified) {
-            println("\tPackage dependencies were modified!")
-        }
-
-        if (didCleanup) {
-            println("\t##########################################################")
-            println("\tNode.js information is different. Cleaning up directories!")
-            println("\t##########################################################")
-
-            // Removes package-lock.json file in case the versions are different.
-            if (jsonPackageLockFile.exists()) {
-                if (!jsonPackageLockFile.delete()) {
-                    throw GradleException(
-                        "Could not remove ${jsonPackageLockFile.path} file. This file has been generated with " +
-                                "a different platform version. Try to remove it manually."
-                    )
-                }
-            }
-        }
+//        if (didCleanup) {
+//            println("\t##########################################################")
+//            println("\tNode.js information is different. Cleaning up directories!")
+//            println("\t##########################################################")
+//
+//            // Removes package-lock.json file in case the versions are different.
+//            if (jsonPackageLockFile.exists()) {
+//                if (!jsonPackageLockFile.delete()) {
+//                    throw GradleException(
+//                        "Could not remove ${jsonPackageLockFile.path} file. This file has been generated with " +
+//                                "a different platform version. Try to remove it manually."
+//                    )
+//                }
+//            }
+//        }
 
         // also have to make sure that webpack is properly installed!
-        val webPackNotInstalled = !webPackExecutableFile.canRead()
+//        val webPackNotInstalled = !webPackExecutableFile.canRead()
 
-        if (didCleanup || hashIsModified || webPackNotInstalled) {
-            println("\tSomething changed, installing dependencies")
-            // must run AFTER package.json file is created **AND** packages are updated!
-//            installPackageDependencies(project, generatedNodeModules)
-        }
+//        if (didCleanup || hashIsModified || webPackNotInstalled) {
+//            println("\tSomething changed, installing dependencies")
+//            // must run AFTER package.json file is created **AND** packages are updated!
+////            installPackageDependencies(project, generatedNodeModules)
+//        }
     }
 
     fun copyToken() {

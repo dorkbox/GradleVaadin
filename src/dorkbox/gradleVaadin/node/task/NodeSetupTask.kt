@@ -5,7 +5,6 @@ import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.frontend.NodeUpdaterAccess
 import dorkbox.executor.Executor
 import dorkbox.gradleVaadin.JsonPackageTools
-import dorkbox.gradleVaadin.NodeExtension
 import dorkbox.gradleVaadin.Vaadin
 import dorkbox.gradleVaadin.VaadinConfig
 import dorkbox.gradleVaadin.node.util.PlatformHelper
@@ -36,41 +35,41 @@ abstract class NodeSetupTask : DefaultTask() {
 
     @get:Internal
     internal val variantComputer = VariantComputer()
-    private val nodeExtension = NodeExtension[project]
+    private val vaadinConfig = VaadinConfig[project]
 
     @get:Input
-    val download = nodeExtension.download
+    val download = vaadinConfig.download
 
     @get:InputFile
     val nodeArchiveFile = objects.fileProperty()
 
     @get:OutputDirectory
-    val nodeDir = nodeExtension.workDir
+    val nodeDir = vaadinConfig.nodeJsDir
 
     @get:Internal
     val projectHelper = ProjectApiHelper.newInstance(project)
 
-    private val debug = VaadinConfig[project].debug
+    private val debug = vaadinConfig.debug
 
-    private val nodeExec = variantComputer.computeNodeExec(nodeExtension)
-    private val npmExec = variantComputer.computeNpmExec(nodeExtension)
-    private val pNpmScript = variantComputer.computePnpmScriptFile(nodeExtension)
-    private val enablePnpm = VaadinConfig[project].enablePnpm
+    private val nodeExec = variantComputer.computeNodeExec(vaadinConfig)
+    private val npmExec = variantComputer.computeNpmExec(vaadinConfig)
+    private val pNpmScript = variantComputer.computePnpmScriptFile(vaadinConfig)
+    private val enablePnpm = vaadinConfig.enablePnpm
 
     private var detectedNodeVersion = ""
     private var detectedNpmVersion = ""
     private var detectedPNpmVersion = ""
 
     // if there is a package.json file ALREADY here, we have to rename it so we can install pnpm.
-    private val projectDir = NodeExtension[project].nodeProjectDir.get().asFile
-    private val pnpmVersion = VaadinConfig[project].pnpmVersion
+    private val projectDir = vaadinConfig.buildDir
+    private val pnpmVersion = vaadinConfig.pnpmVersion
 
     init {
         group = Vaadin.NODE_GROUP
         description = "Download and install a local node/npm version."
 
         onlyIf {
-            nodeExtension.download.get()
+            vaadinConfig.download.get()
         }
 
         outputs.upToDateWhen {
@@ -141,7 +140,7 @@ abstract class NodeSetupTask : DefaultTask() {
 
     private fun unpackNodeArchive() {
         val archiveFile = nodeArchiveFile.get().asFile
-        val nodeDirProvider = nodeExtension.workDir
+        val nodeDirProvider = vaadinConfig.nodeJsDir
         val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
 
         println("\t   Unpack: ${archiveFile}")
@@ -149,12 +148,12 @@ abstract class NodeSetupTask : DefaultTask() {
         if (archiveFile.name.endsWith("zip")) {
             projectHelper.copy {
                 from(projectHelper.zipTree(archiveFile))
-                into(nodeExtension.buildDir)
+                into(vaadinConfig.buildDir)
             }
         } else {
             projectHelper.copy {
                 from(projectHelper.tarTree(archiveFile))
-                into(nodeExtension.buildDir)
+                into(vaadinConfig.buildDir)
             }
 
             // Fix broken symlink
@@ -174,8 +173,8 @@ abstract class NodeSetupTask : DefaultTask() {
     }
 
     private fun renameDirectory() {
-        val nodeDirProvider = nodeExtension.workDir
-        val extractionName = variantComputer.computeExtractionName(nodeExtension)
+        val nodeDirProvider = vaadinConfig.nodeJsDir
+        val extractionName = variantComputer.computeExtractionName(vaadinConfig)
 
         val nodeDir = nodeDirProvider.get().asFile
         val baseFile = nodeDir.parentFile
@@ -192,9 +191,9 @@ abstract class NodeSetupTask : DefaultTask() {
 
     private fun setExecutableFlag() {
         if (!PlatformHelper.INSTANCE.isWindows) {
-            val nodeDirProvider = nodeExtension.workDir
+            val nodeDirProvider = vaadinConfig.nodeJsDir
             val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
-            val nodeExecProvider = variantComputer.computeNodeExec(nodeExtension, nodeBinDirProvider)
+            val nodeExecProvider = variantComputer.computeNodeExec(vaadinConfig, nodeBinDirProvider)
             File(nodeExecProvider.get()).setExecutable(true)
         }
     }
@@ -349,7 +348,7 @@ abstract class NodeSetupTask : DefaultTask() {
 
             if (result.exitValue == 1) {
                 println("\tCouldn't install 'pnpm', disabling it's usage...")
-                VaadinConfig[project].enablePnpm = false
+                vaadinConfig.enablePnpm = false
             } else {
                 if (debug) {
                     println("\tpNPM successfully installed")

@@ -1,7 +1,7 @@
 package dorkbox.gradleVaadin.node.npm.task
 
-import dorkbox.gradleVaadin.NodeExtension
 import dorkbox.gradleVaadin.Vaadin
+import dorkbox.gradleVaadin.VaadinConfig
 import dorkbox.gradleVaadin.node.exec.NodeExecConfiguration
 import dorkbox.gradleVaadin.node.npm.exec.NpmExecRunner
 import dorkbox.gradleVaadin.node.task.NodeSetupTask
@@ -31,7 +31,7 @@ abstract class NpmSetupTask : DefaultTask() {
     abstract val providers: ProviderFactory
 
     @get:Internal
-    protected val nodeExtension = NodeExtension[project]
+    protected val vaadinConfig = VaadinConfig[project]
 
     @get:Internal
     val projectHelper = ProjectApiHelper.newInstance(project)
@@ -40,12 +40,12 @@ abstract class NpmSetupTask : DefaultTask() {
     val args = objects.listProperty<String>()
 
     @get:Input
-    val download = nodeExtension.download
+    val download = vaadinConfig.download
 
     @get:OutputDirectory
     val npmDir by lazy {
         val variantComputer = VariantComputer()
-        variantComputer.computeNpmDir(nodeExtension, nodeExtension.workDir)
+        variantComputer.computeNpmDir(vaadinConfig, vaadinConfig.nodeJsDir)
     }
 
     init {
@@ -59,12 +59,12 @@ abstract class NpmSetupTask : DefaultTask() {
 
     @Input
     protected open fun getVersion(): Provider<String> {
-        return nodeExtension.npmVersion
+        return vaadinConfig.npmVersion
     }
 
     @Internal
     open fun isTaskEnabled(): Boolean {
-        return nodeExtension.npmVersion.get().isNotBlank()
+        return vaadinConfig.npmVersion.get().isNotBlank()
     }
 
     @TaskAction
@@ -72,11 +72,11 @@ abstract class NpmSetupTask : DefaultTask() {
         val command = computeCommand()
         val nodeExecConfiguration = NodeExecConfiguration(command)
         val npmExecRunner = objects.newInstance(NpmExecRunner::class.java)
-        npmExecRunner.executeNpmCommand(projectHelper, nodeExtension, nodeExecConfiguration)
+        npmExecRunner.executeNpmCommand(project, projectHelper, vaadinConfig, nodeExecConfiguration)
     }
 
     protected open fun computeCommand(): List<String> {
-        val version = nodeExtension.npmVersion.get()
+        val version = vaadinConfig.npmVersion.get()
         val directory = npmDir.get().asFile
         // npm < 7 creates the directory if it's missing, >= 7 fails if it's missing
         File(directory, "lib").mkdirs()

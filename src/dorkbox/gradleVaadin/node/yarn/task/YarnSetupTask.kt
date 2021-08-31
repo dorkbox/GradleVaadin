@@ -19,17 +19,17 @@ abstract class YarnSetupTask : NpmSetupTask() {
 
     @Input
     override fun getVersion(): Provider<String> {
-        return nodeExtension.yarnVersion
+        return vaadinConfig.yarnVersion
     }
 
     @get:OutputDirectory
     val yarnDir by lazy {
         val variantComputer = VariantComputer()
-        variantComputer.computeYarnDir(nodeExtension)
+        variantComputer.computeYarnDir(vaadinConfig)
     }
 
     override fun computeCommand(): List<String> {
-        val version = nodeExtension.yarnVersion.get()
+        val version = vaadinConfig.yarnVersion.get()
         val yarnDir = yarnDir.get()
         val yarnPackage = if (version.isNotBlank()) "yarn@$version" else "yarn"
         // npm < 7 creates the directory if it's missing, >= 7 fails if it's missing

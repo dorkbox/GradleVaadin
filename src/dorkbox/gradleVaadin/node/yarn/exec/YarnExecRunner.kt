@@ -1,6 +1,6 @@
 package dorkbox.gradleVaadin.node.yarn.exec
 
-import dorkbox.gradleVaadin.NodeExtension
+import dorkbox.gradleVaadin.VaadinConfig
 import dorkbox.gradleVaadin.node.exec.ExecConfiguration
 import dorkbox.gradleVaadin.node.exec.ExecRunner
 import dorkbox.gradleVaadin.node.exec.NodeExecConfiguration
@@ -19,25 +19,25 @@ internal abstract class YarnExecRunner {
 
     private val variantComputer = VariantComputer()
 
-    fun executeYarnCommand(project: ProjectApiHelper, nodeExtension: NodeExtension, nodeExecConfiguration: NodeExecConfiguration) {
-        val nodeDirProvider = nodeExtension.workDir
-        val yarnDirProvider = variantComputer.computeYarnDir(nodeExtension)
+    fun executeYarnCommand(project: ProjectApiHelper, vaadinConfig: VaadinConfig, nodeExecConfiguration: NodeExecConfiguration) {
+        val nodeDirProvider = vaadinConfig.nodeJsDir
+        val yarnDirProvider = variantComputer.computeYarnDir(vaadinConfig)
         val yarnBinDirProvider = variantComputer.computeYarnBinDir(yarnDirProvider)
-        val yarnExecProvider = variantComputer.computeYarnExec(nodeExtension, yarnBinDirProvider)
+        val yarnExecProvider = variantComputer.computeYarnExec(vaadinConfig, yarnBinDirProvider)
         val additionalBinPathProvider =
-                computeAdditionalBinPath(nodeExtension, nodeDirProvider, yarnBinDirProvider)
+                computeAdditionalBinPath(vaadinConfig, nodeDirProvider, yarnBinDirProvider)
         val execConfiguration = ExecConfiguration(yarnExecProvider.get(),
                 nodeExecConfiguration.command, additionalBinPathProvider.get(),
-                addNpmProxyEnvironment(nodeExtension, nodeExecConfiguration), nodeExecConfiguration.workingDir,
+                addNpmProxyEnvironment(vaadinConfig, nodeExecConfiguration), nodeExecConfiguration.workingDir,
                 nodeExecConfiguration.ignoreExitValue, nodeExecConfiguration.execOverrides)
         val execRunner = ExecRunner()
-        execRunner.execute(project, nodeExtension, execConfiguration)
+        execRunner.execute(project, vaadinConfig, execConfiguration)
     }
 
-    private fun addNpmProxyEnvironment(nodeExtension: NodeExtension,
+    private fun addNpmProxyEnvironment(vaadinConfig: VaadinConfig,
                                        nodeExecConfiguration: NodeExecConfiguration
     ): Map<String, String> {
-        if (NpmProxy.shouldConfigureProxy(System.getenv(), nodeExtension.nodeProxySettings.get())) {
+        if (NpmProxy.shouldConfigureProxy(System.getenv(), vaadinConfig.nodeProxySettings.get())) {
             val npmProxyEnvironmentVariables = NpmProxy.computeNpmProxyEnvironmentVariables()
             if (npmProxyEnvironmentVariables.isNotEmpty()) {
                 return nodeExecConfiguration.environment.plus(npmProxyEnvironmentVariables)
@@ -46,15 +46,15 @@ internal abstract class YarnExecRunner {
         return nodeExecConfiguration.environment
     }
 
-    private fun computeAdditionalBinPath(nodeExtension: NodeExtension,
+    private fun computeAdditionalBinPath(vaadinConfig: VaadinConfig,
                                          nodeDirProvider: Provider<Directory>,
                                          yarnBinDirProvider: Provider<Directory>): Provider<List<String>> {
-        return nodeExtension.download.flatMap { download ->
+        return vaadinConfig.download.flatMap { download ->
             if (!download) {
                 providers.provider { listOf<String>() }
             }
             val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
-            val npmDirProvider = variantComputer.computeNpmDir(nodeExtension, nodeDirProvider)
+            val npmDirProvider = variantComputer.computeNpmDir(vaadinConfig, nodeDirProvider)
             val npmBinDirProvider = variantComputer.computeNpmBinDir(npmDirProvider)
             zip(nodeBinDirProvider, npmBinDirProvider, yarnBinDirProvider)
                     .map { (nodeBinDir, npmBinDir, yarnBinDir) ->

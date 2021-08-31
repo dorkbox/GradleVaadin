@@ -1,7 +1,7 @@
 package dorkbox.gradleVaadin.node.task
 
-import dorkbox.gradleVaadin.NodeExtension
 import dorkbox.gradleVaadin.Vaadin
+import dorkbox.gradleVaadin.VaadinConfig
 import dorkbox.gradleVaadin.node.exec.NodeExecConfiguration
 import dorkbox.gradleVaadin.node.exec.NodeExecRunner
 import dorkbox.gradleVaadin.node.util.ProjectApiHelper
@@ -74,7 +74,7 @@ abstract class NodeTask : DefaultTask() {
      * Overrides for [ExecSpec]
      */
     @get:Internal
-    val extension = NodeExtension[project]
+    val extension = VaadinConfig[project]
 
     init {
         group = Vaadin.NODE_GROUP
