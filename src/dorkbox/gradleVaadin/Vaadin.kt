@@ -253,7 +253,6 @@ class Vaadin : Plugin<Project> {
                 try {
                     vaadinCompiler.copyToken()
                     vaadinCompiler.copyResources()
-
                     vaadinCompiler.generateFlow()
                     vaadinCompiler.generateWebPack()
                 } catch (e: Exception) {

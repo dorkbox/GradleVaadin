@@ -202,7 +202,7 @@ internal class VaadinCompiler(val project: Project) {
         buildInfo.put(InitParameters.SERVLET_PARAMETER_COMPATIBILITY_MODE, false)
         buildInfo.put(InitParameters.SERVLET_PARAMETER_PRODUCTION_MODE, productionMode)
         buildInfo.put("polymer.version", polymerVersion)
-        buildInfo.put("pnpm.enabled", config.enablePnpm) // matches vaadin application launcher
+        buildInfo.put(InitParameters.SERVLET_PARAMETER_ENABLE_PNPM, config.enablePnpm) // matches vaadin application launcher
 
         // used for defining folder paths for dev server
         if (!productionMode) {
