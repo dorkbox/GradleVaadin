@@ -27,9 +27,11 @@ import dorkbox.gradleVaadin.node.variant.VariantComputer
 import dorkbox.gradleVaadin.node.yarn.task.YarnInstallTask
 import dorkbox.gradleVaadin.node.yarn.task.YarnSetupTask
 import dorkbox.gradleVaadin.node.yarn.task.YarnTask
-import org.gradle.api.GradleException
+import dorkbox.vaadin.compiler.VaadinCompile
 import org.gradle.api.Plugin
 import org.gradle.api.Project
+import org.gradle.api.Task
+import org.gradle.api.tasks.TaskInputs
 import org.gradle.kotlin.dsl.named
 import org.gradle.kotlin.dsl.register
 import java.io.File
@@ -44,6 +46,7 @@ class Vaadin : Plugin<Project> {
         const val NPM_GROUP = "npm"
         const val YARN_GROUP = "Yarn"
 
+        const val SHUTDOW_TASK = "shutdownCompiler"
         const val compileDevName = "compileResources-DEV"
         const val compileProdName = "compileResources-PROD"
 
@@ -80,6 +83,27 @@ class Vaadin : Plugin<Project> {
 
     private lateinit var project: Project
     private lateinit var config: VaadinConfig
+
+    private fun newTask(dependencyTask: Task,
+                        taskName: String,
+                        description: String,
+                        inputs: TaskInputs.()->Unit = {},
+                        action: Task.(vaadinCompiler: VaadinCompiler) -> Unit): Task {
+        return project.tasks.create(taskName).apply {
+            dependsOn(dependencyTask)
+            finalizedBy(SHUTDOW_TASK)
+
+            group = "vaadin"
+            this.description = description
+
+            inputs(this.inputs)
+
+            doLast {
+                val vaadinCompiler: VaadinCompiler = VaadinConfig[project].vaadinCompiler
+                action(this, vaadinCompiler)
+            }
+        }
+    }
 
     override fun apply(project: Project) {
         this.project = project
@@ -128,86 +152,94 @@ class Vaadin : Plugin<Project> {
             } catch (e: Exception) {
                 println("Unable to configure NodeJS repository: ${config.nodeVersion}")
             }
+        }
 
+        project.tasks.create(SHUTDOW_TASK).apply {
+            doLast {
+                val vaadinCompiler = VaadinConfig[project].vaadinCompiler
+                // every task MUST call shutdown in order to close the class-scanner (otherwise it will hold open files)
+                vaadinCompiler.finish()
+            }
+        }
+
+        val nodeSetup = project.tasks.named(NodeSetupTask.NAME).get()
+
+        val generateWebComponents = newTask(nodeSetup, "generateWebComponents", "Generate Vaadin web components")
+        { vaadinCompiler ->
             VaadinConfig[project].vaadinCompiler.log()
+            vaadinCompiler.generateWebComponents()
         }
 
-        val nodeSetup = project.tasks.named(NodeSetupTask.NAME)
-
-        val prepareJsonFiles = project.tasks.create("prepareJsonFiles").apply {
-            dependsOn(nodeSetup)
-            group = "vaadin"
-            description = "Prepare Vaadin frontend"
-
-//                inputs.files(vaadinCompiler.jsonPackageFile)
-
-            doLast {
-                val vaadinCompiler = VaadinConfig[project].vaadinCompiler
-                vaadinCompiler.prepareJsonFiles()
-            }
+        val createMissingPackageJson = newTask(generateWebComponents, "createMissingPackageJson", "Prepare Vaadin frontend")
+        { vaadinCompiler ->
+            VaadinCompile.print()
+            vaadinCompiler.createMissingPackageJson()
         }
 
-        val prepareWebpackFiles = project.tasks.create("prepareWebpackFiles").apply {
-            dependsOn(prepareJsonFiles)
-            group = "vaadin"
-            description = "Prepare Vaadin frontend"
-
-//                inputs.files(vaadinCompiler.jsonPackageFile)
-
-            doLast {
-                val vaadinCompiler = VaadinConfig[project].vaadinCompiler
-                vaadinCompiler.prepareWebpackFiles()
-            }
+        val prepareJsonFiles = newTask(createMissingPackageJson, "prepareJsonFiles", "Prepare Vaadin frontend",
+            {
+//            files(vaadinCompiler.jsonPackageFile)
+            })
+        { vaadinCompiler ->
+            VaadinCompile.print()
+            vaadinCompiler.prepareJsonFiles()
         }
 
-        val createTokenFile = project.tasks.create("createTokenFile").apply {
-            dependsOn(prepareWebpackFiles)
-            group = "vaadin"
-            description = "Create Vaadin token file"
-
-            doLast {
-                val vaadinCompiler = VaadinConfig[project].vaadinCompiler
-                vaadinCompiler.createTokenFile()
-            }
+        val copyJarResources = newTask(prepareJsonFiles, "copyJarResources", "Compile Vaadin resources for Production")
+        { vaadinCompiler ->
+            vaadinCompiler.copyJarResources()
         }
 
-        val generateWebComponents = project.tasks.create("generateWebComponents").apply {
-            dependsOn(createTokenFile)
-            group = "vaadin"
-            description = "Generate Vaadin web components"
-
-            doLast {
-                val vaadinCompiler = VaadinConfig[project].vaadinCompiler
-                vaadinCompiler.generateWebComponents()
-            }
+        val copyLocalResources = newTask(copyJarResources, "copyLocalResources", "Compile Vaadin resources for Production")
+        { vaadinCompiler ->
+            vaadinCompiler.copyFrontendResourcesDirectory()
         }
 
-        val generateFlowJsonPackage = project.tasks.create("generateFlowJsonPackage").apply {
-            dependsOn(generateWebComponents)
-            group = "vaadin"
-            description = "Compile Vaadin resources for Development"
+        val createTokenFile = newTask(copyLocalResources, "createTokenFile", "Create Vaadin token file")
+        { vaadinCompiler ->
+            vaadinCompiler.createTokenFile()
+            vaadinCompiler.copyToken()
+        }
 
-            // enable caching for the compile task
-            outputs.cacheIf { true }
+        val updateWebPack = newTask(createTokenFile, "updateWebPack", "Compile Vaadin resources for Production")
+        { vaadinCompiler ->
+            vaadinCompiler.fixWebpackTemplate()
+        }
 
-            inputs.files(
-                "${project.projectDir}/package.json",
-                "${project.projectDir}/package-lock.json",
-            )
+        // last one from NodeTasks.java
+        val enableImportsUpdate = newTask(updateWebPack, "enableImportsUpdate", "Compile Vaadin resources for Production")
+        { vaadinCompiler ->
+            vaadinCompiler.enableImportsUpdate()
+        }
 
-//            outputs.files(
-//                "${project.buildDir}/package.json",
-//            )
+        // FOR DEV MODE, THIS IS AS FAR AS WE GO
+        // last DevModeHandler start
 
-            doLast {
-                val vaadinCompiler = VaadinConfig[project].vaadinCompiler
-                vaadinCompiler.generateFlowJsonPackage()
-            }
+
+
+
+        // the plugin on start needs to rewrite DevModeInitializer.initDevModeHandler so that all these tasks aren't run every time for dev mode
+        // because that is really slow to start up??
+        // ALTERNATIVELY, devmodeinit runs the same thing as the gradle plugin, but the difference is we only run the full gradle version
+        // for a production build (webpack is compiled instead of running dev-mode, is the only difference...).
+        //   the only problem, is when running as a JPMS module...
+        //      to solve this, we could modify the byte-code -- then RECREATE the jar (which we would then startup)
+        //         OR.. we modify the bytecode ON COMPILE, so that a "run" would always include the modified jar
+        // or we just include our own version
+
+
+
+
+        val generateWebPack = newTask(enableImportsUpdate, "generateWebPack", "Compile Vaadin resources for Production")
+        { vaadinCompiler ->
+            vaadinCompiler.generateWebPack()
         }
 
 
         project.tasks.create(compileDevName).apply {
-            dependsOn(generateFlowJsonPackage, project.tasks.named("classes"))
+            dependsOn(createTokenFile, project.tasks.named("classes"))
+            finalizedBy(SHUTDOW_TASK)
+
             group = "vaadin"
             description = "Compile Vaadin resources for Development"
 
@@ -228,8 +260,10 @@ class Vaadin : Plugin<Project> {
             outputs.dir("${project.buildDir}/node_modules")
         }
 
+
         project.tasks.create(compileProdName).apply {
-            dependsOn(generateFlowJsonPackage, project.tasks.named("classes"))
+            dependsOn(generateWebPack, project.tasks.named("classes"))
+            finalizedBy(SHUTDOW_TASK)
 
             group = "vaadin"
             description = "Compile Vaadin resources for Production"
@@ -246,21 +280,6 @@ class Vaadin : Plugin<Project> {
 
             outputs.dir("${project.buildDir}/resources/main/META-INF/resources/VAADIN")
             outputs.dir("${project.buildDir}/node_modules")
-
-            doLast {
-                val vaadinCompiler = VaadinConfig[project].vaadinCompiler
-
-                try {
-                    vaadinCompiler.copyToken()
-                    vaadinCompiler.copyResources()
-                    vaadinCompiler.generateFlow()
-                    vaadinCompiler.generateWebPack()
-                } catch (e: Exception) {
-                    throw GradleException(e.message ?: "", e)
-                } finally {
-                    vaadinCompiler.finish()
-                }
-            }
         }
 
         project.childProjects.values.forEach {

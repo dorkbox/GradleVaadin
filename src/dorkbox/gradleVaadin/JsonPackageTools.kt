@@ -1,12 +1,10 @@
 package dorkbox.gradleVaadin
 
 import com.vaadin.flow.server.Constants
-import com.vaadin.flow.server.frontend.FrontendUtils
 import elemental.json.*
 import elemental.json.impl.JsonUtil
 import org.jetbrains.kotlin.gradle.internal.ensureParentDirsCreated
 import java.io.File
-import java.io.FileOutputStream
 import java.security.MessageDigest
 import java.security.NoSuchAlgorithmException
 
@@ -268,54 +266,6 @@ class JsonPackageTools {
             return doCleanUp
         }
 
-
-        fun fixWebPackConfig(configFile: File, sourceFrontEndDir: File, webpackOutputDir: File,
-                             flowImportFile: File, relativeStaticResources: String,
-                             customClassFinder: CustomClassFinder) {
-
-            val parentDirectory = configFile.parentFile
-            val absoluteConfigPath = parentDirectory.absoluteFile
-            val absoluteSourceFrontEndPath = sourceFrontEndDir.absoluteFile
-            val absoluteWebpackOutputPath = webpackOutputDir.absoluteFile
-
-            // Generated file is always re-written
-            val generatedFile = parentDirectory.resolve(FrontendUtils.WEBPACK_GENERATED).absoluteFile
-            println("\tUpdating generated webpack file: $generatedFile")
-
-
-            val resource = customClassFinder.getResource(FrontendUtils.WEBPACK_GENERATED)
-            resource?.openStream()?.copyTo(FileOutputStream(generatedFile))
-
-            val frontEndReplacement = relativize(absoluteConfigPath, absoluteSourceFrontEndPath)
-            val frontendLine = "const frontendFolder = require('path').resolve(__dirname, '$frontEndReplacement');"
-
-            // this is the 'META-INF/resources/VAADIN' directory
-            val webPackReplacement = relativize(absoluteConfigPath, absoluteWebpackOutputPath)
-            val outputLine = "const mavenOutputFolderForFlowBundledFiles = require('path').resolve(__dirname, '$webPackReplacement');"
-
-            val flowImportsReplacement = relativize(absoluteConfigPath, flowImportFile)
-            val mainLine = "const fileNameOfTheFlowGeneratedMainEntryPoint = require('path').resolve(__dirname, '$flowImportsReplacement');"
-
-            // NOTE: new stuff. Change 'src/main/webapp' -> 'webapp' (or META-INF? which is where all static resources are served...)
-            val webappDirLine = "contentBase: [mavenOutputFolderForFlowBundledFiles, '$relativeStaticResources'],"
-
-
-            val lines = generatedFile.readLines(Charsets.UTF_8).toMutableList()
-            for (i in lines.indices) {
-                val line = lines[i].trim()
-                if (line.startsWith("const frontendFolder")) {
-                    lines[i] = frontendLine
-                } else if (line.startsWith("const mavenOutputFolderForFlowBundledFiles") && line != outputLine) {
-                    lines[i] = outputLine
-                } else if (line.startsWith("const fileNameOfTheFlowGeneratedMainEntryPoint") && line != mainLine) {
-                    lines[i] = mainLine
-                } else if (line.startsWith("contentBase: [mavenOutputFolderForFlowBundledFiles") && line != webappDirLine) {
-                    lines[i] = webappDirLine
-                }
-            }
-
-            generatedFile.writeText(lines.joinToString(separator = "\n"))
-        }
 
         /**
          * Check and update the main package hash in all cases as we might have updated the main package with new dependencies.

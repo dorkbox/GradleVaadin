@@ -2,7 +2,7 @@ package dorkbox.gradleVaadin.node.task
 
 import com.dorkbox.version.Version
 import com.vaadin.flow.server.Constants
-import com.vaadin.flow.server.frontend.NodeUpdaterAccess
+import com.vaadin.flow.server.frontend.Util
 import dorkbox.executor.Executor
 import dorkbox.gradleVaadin.JsonPackageTools
 import dorkbox.gradleVaadin.Vaadin
@@ -257,7 +257,7 @@ abstract class NodeSetupTask : DefaultTask() {
             .addArg(listOf("list", "pnpm", "--depth=0"))
 
         if (!silent) {
-            NodeUpdaterAccess.execDebug(exe)
+            Util.execDebug(exe)
         }
 
         val result = exe.startBlocking()
@@ -336,7 +336,7 @@ abstract class NodeSetupTask : DefaultTask() {
 
             if (debug) {
                 exe.enableRead()
-                NodeUpdaterAccess.execDebug(exe)
+                Util.execDebug(exe)
             }
 
             val result = exe.startBlocking()
