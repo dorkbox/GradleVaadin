@@ -20,8 +20,6 @@ internal abstract class NpmExecRunner {
     @get:Inject
     abstract val providers: ProviderFactory
 
-    private val variantComputer = VariantComputer()
-
     fun executeNpmCommand(
         project1: Project,
         project: ProjectApiHelper,
@@ -91,12 +89,12 @@ internal abstract class NpmExecRunner {
     private fun computeExecutable(project: Project,vaadinConfig: VaadinConfig, npmExecConfiguration: NpmExecConfiguration):
             Provider<ExecutableAndScript> {
         val nodeDirProvider = vaadinConfig.nodeJsDir
-        val npmDirProvider = variantComputer.computeNpmDir(vaadinConfig, nodeDirProvider)
-        val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
-        val npmBinDirProvider = variantComputer.computeNpmBinDir(npmDirProvider)
-        val nodeExecProvider = variantComputer.computeNodeExec(vaadinConfig, nodeBinDirProvider)
-        val executableProvider = npmExecConfiguration.commandExecComputer(variantComputer, vaadinConfig, npmBinDirProvider)
-        val npmScriptFileProvider = variantComputer.computeNpmScriptProvider(nodeDirProvider, npmExecConfiguration.command)
+        val npmDirProvider = VariantComputer.computeNpmDir(vaadinConfig, nodeDirProvider)
+        val nodeBinDirProvider = VariantComputer.computeNodeBinDir(nodeDirProvider)
+        val npmBinDirProvider = VariantComputer.computeNpmBinDir(npmDirProvider)
+        val nodeExecProvider = VariantComputer.computeNodeExec(vaadinConfig, nodeBinDirProvider)
+        val executableProvider = npmExecConfiguration.commandExecComputer(VariantComputer, vaadinConfig, npmBinDirProvider)
+        val npmScriptFileProvider = VariantComputer.computeNpmScriptProvider(nodeDirProvider, npmExecConfiguration.command)
 
 
         return zip(vaadinConfig.download, getNodeModulesDirectory(project, vaadinConfig), executableProvider, nodeExecProvider, npmScriptFileProvider).map {
@@ -124,9 +122,9 @@ internal abstract class NpmExecRunner {
                 providers.provider { listOf<String>() }
             }
             val nodeDirProvider = vaadinConfig.nodeJsDir
-            val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
-            val npmDirProvider = variantComputer.computeNpmDir(vaadinConfig, nodeDirProvider)
-            val npmBinDirProvider = variantComputer.computeNpmBinDir(npmDirProvider)
+            val nodeBinDirProvider = VariantComputer.computeNodeBinDir(nodeDirProvider)
+            val npmDirProvider = VariantComputer.computeNpmDir(vaadinConfig, nodeDirProvider)
+            val npmBinDirProvider = VariantComputer.computeNpmBinDir(npmDirProvider)
             zip(npmBinDirProvider, nodeBinDirProvider).map { (npmBinDir, nodeBinDir) ->
                 listOf(npmBinDir, nodeBinDir).map { file -> file.asFile.absolutePath }
             }

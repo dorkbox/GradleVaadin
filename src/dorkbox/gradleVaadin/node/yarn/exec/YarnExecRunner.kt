@@ -17,13 +17,11 @@ internal abstract class YarnExecRunner {
     @get:Inject
     abstract val providers: ProviderFactory
 
-    private val variantComputer = VariantComputer()
-
     fun executeYarnCommand(project: ProjectApiHelper, vaadinConfig: VaadinConfig, nodeExecConfiguration: NodeExecConfiguration) {
         val nodeDirProvider = vaadinConfig.nodeJsDir
-        val yarnDirProvider = variantComputer.computeYarnDir(vaadinConfig)
-        val yarnBinDirProvider = variantComputer.computeYarnBinDir(yarnDirProvider)
-        val yarnExecProvider = variantComputer.computeYarnExec(vaadinConfig, yarnBinDirProvider)
+        val yarnDirProvider = VariantComputer.computeYarnDir(vaadinConfig)
+        val yarnBinDirProvider = VariantComputer.computeYarnBinDir(yarnDirProvider)
+        val yarnExecProvider = VariantComputer.computeYarnExec(vaadinConfig, yarnBinDirProvider)
         val additionalBinPathProvider =
                 computeAdditionalBinPath(vaadinConfig, nodeDirProvider, yarnBinDirProvider)
         val execConfiguration = ExecConfiguration(yarnExecProvider.get(),
@@ -53,9 +51,9 @@ internal abstract class YarnExecRunner {
             if (!download) {
                 providers.provider { listOf<String>() }
             }
-            val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
-            val npmDirProvider = variantComputer.computeNpmDir(vaadinConfig, nodeDirProvider)
-            val npmBinDirProvider = variantComputer.computeNpmBinDir(npmDirProvider)
+            val nodeBinDirProvider = VariantComputer.computeNodeBinDir(nodeDirProvider)
+            val npmDirProvider = VariantComputer.computeNpmDir(vaadinConfig, nodeDirProvider)
+            val npmBinDirProvider = VariantComputer.computeNpmBinDir(npmDirProvider)
             zip(nodeBinDirProvider, npmBinDirProvider, yarnBinDirProvider)
                     .map { (nodeBinDir, npmBinDir, yarnBinDir) ->
                         listOf(yarnBinDir, npmBinDir, nodeBinDir).map { file -> file.asFile.absolutePath }

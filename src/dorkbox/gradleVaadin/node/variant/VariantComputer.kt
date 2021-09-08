@@ -8,18 +8,15 @@ import org.gradle.api.file.Directory
 import org.gradle.api.provider.Provider
 import java.io.File
 
-class VariantComputer @JvmOverloads constructor(private val platformHelper: PlatformHelper = PlatformHelper.INSTANCE) {
+object VariantComputer {
+    private val platformHelper: PlatformHelper = PlatformHelper.INSTANCE
+
     fun computeExtractionName(vaadinConfig: VaadinConfig): String {
         val osName = platformHelper.osName
         val osArch = platformHelper.osArch
         return "node-${vaadinConfig.nodeVersion}-$osName-$osArch"
     }
 
-
-
-//    fun computeNodeModulesDir(vaadinConfig: VaadinConfig): File {
-//        return
-//    }
 
     fun computeNodeBinDir(nodeDirProvider: Provider<Directory>) = computeProductBinDir(nodeDirProvider)
 
@@ -143,6 +140,5 @@ class VariantComputer @JvmOverloads constructor(private val platformHelper: Plat
         val type = if (platformHelper.isWindows) "zip" else "tar.gz"
 
         return "org.nodejs:node:${vaadinConfig.nodeVersion}:$osName-$osArch@$type"
-
     }
 }

@@ -16,10 +16,9 @@ internal class NodeExecRunner {
 
     private fun buildExecConfiguration(vaadinConfig: VaadinConfig, nodeExecConfiguration: NodeExecConfiguration):
             Provider<ExecConfiguration> {
-        val variantComputer = VariantComputer()
         val nodeDirProvider = vaadinConfig.nodeJsDir
-        val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
-        val executableProvider = variantComputer.computeNodeExec(vaadinConfig, nodeBinDirProvider)
+        val nodeBinDirProvider = VariantComputer.computeNodeBinDir(nodeDirProvider)
+        val executableProvider = VariantComputer.computeNodeExec(vaadinConfig, nodeBinDirProvider)
         val additionalBinPathProvider = computeAdditionalBinPath(vaadinConfig, nodeBinDirProvider)
         return zip(executableProvider, additionalBinPathProvider)
                 .map { (executable, additionalBinPath) ->

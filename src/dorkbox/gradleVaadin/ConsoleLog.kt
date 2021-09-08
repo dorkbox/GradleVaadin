@@ -9,6 +9,7 @@ import java.io.PrintStream
 /**
  *
  */
+@Suppress("UNCHECKED_CAST", "PropertyName")
 class ConsoleLog(val name_: String = "",
                  val currentLogLevel: Int = Level.TRACE,
                  val targetStream: PrintStream = System.out,
@@ -91,7 +92,7 @@ class ConsoleLog(val name_: String = "",
         }
     }
 
-    override fun trace(msg: String, t: Throwable?) {
+    override fun trace(msg: String, t: Throwable) {
         if (isTraceEnabled) {
             handle_0ArgsCall(Level.TRACE, null, msg, t)
         }
@@ -121,7 +122,7 @@ class ConsoleLog(val name_: String = "",
         }
     }
 
-    override fun trace(marker: Marker?, msg: String, t: Throwable?) {
+    override fun trace(marker: Marker?, msg: String, t: Throwable) {
         if (isTraceEnabled(marker)) {
             handle_0ArgsCall(Level.TRACE, marker, msg, t)
         }
@@ -151,7 +152,7 @@ class ConsoleLog(val name_: String = "",
         }
     }
 
-    override fun debug(msg: String, t: Throwable?) {
+    override fun debug(msg: String, t: Throwable) {
         if (isDebugEnabled) {
             handle_0ArgsCall(Level.DEBUG, null, msg, t)
         }
@@ -181,7 +182,7 @@ class ConsoleLog(val name_: String = "",
         }
     }
 
-    override fun debug(marker: Marker?, msg: String, t: Throwable?) {
+    override fun debug(marker: Marker?, msg: String, t: Throwable) {
         if (isDebugEnabled(marker)) {
             handle_0ArgsCall(Level.DEBUG, marker, msg, t)
         }
@@ -211,7 +212,7 @@ class ConsoleLog(val name_: String = "",
         }
     }
 
-    override fun info(msg: String, t: Throwable?) {
+    override fun info(msg: String, t: Throwable) {
         if (isInfoEnabled) {
             handle_0ArgsCall(Level.INFO, null, msg, t)
         }
@@ -241,7 +242,7 @@ class ConsoleLog(val name_: String = "",
         }
     }
 
-    override fun info(marker: Marker?, msg: String, t: Throwable?) {
+    override fun info(marker: Marker?, msg: String, t: Throwable) {
         if (isInfoEnabled(marker)) {
             handle_0ArgsCall(Level.INFO, marker, msg, t)
         }
@@ -271,7 +272,7 @@ class ConsoleLog(val name_: String = "",
         }
     }
 
-    override fun warn(msg: String, t: Throwable?) {
+    override fun warn(msg: String, t: Throwable) {
         if (isWarnEnabled) {
             handle_0ArgsCall(Level.WARN, null, msg, t)
         }
@@ -301,7 +302,7 @@ class ConsoleLog(val name_: String = "",
         }
     }
 
-    override fun warn(marker: Marker?, msg: String, t: Throwable?) {
+    override fun warn(marker: Marker?, msg: String, t: Throwable) {
         if (isWarnEnabled(marker)) {
             handle_0ArgsCall(Level.WARN, marker, msg, t)
         }
@@ -331,7 +332,7 @@ class ConsoleLog(val name_: String = "",
         }
     }
 
-    override fun error(msg: String, t: Throwable?) {
+    override fun error(msg: String, t: Throwable) {
         if (isErrorEnabled) {
             handle_0ArgsCall(Level.ERROR, null, msg, t)
         }
@@ -361,7 +362,7 @@ class ConsoleLog(val name_: String = "",
         }
     }
 
-    override fun error(marker: Marker?, msg: String, t: Throwable?) {
+    override fun error(marker: Marker?, msg: String, t: Throwable) {
         if (isErrorEnabled(marker)) {
             handle_0ArgsCall(Level.ERROR, marker, msg, t)
         }
@@ -377,7 +378,7 @@ class ConsoleLog(val name_: String = "",
 
     private fun handle2ArgsCall(level: Int, marker: Marker?, msg: String, arg1: Any, arg2: Any) {
         if (arg2 is Throwable) {
-            handleNormalizedLoggingCall(level, marker, msg, arrayOf(arg1), arg2 as Throwable)
+            handleNormalizedLoggingCall(level, marker, msg, arrayOf(arg1), arg2)
         } else {
             handleNormalizedLoggingCall(level, marker, msg, arrayOf(arg1, arg2), null)
         }
@@ -463,13 +464,14 @@ class ConsoleLog(val name_: String = "",
     }
 
     private fun computeShortName(): String? {
-        return name!!.substring(name!!.lastIndexOf(".") + 1)
+        return name_.substring(name_.lastIndexOf(".") + 1)
     }
 
     var shortLogName: String? = null
 
     val START_TIME = System.currentTimeMillis()
 
+    @Suppress("UNUSED_PARAMETER")
     private fun innerHandleNormalizedLoggingCall(
         level: Int,
         markers: List<Marker>?,

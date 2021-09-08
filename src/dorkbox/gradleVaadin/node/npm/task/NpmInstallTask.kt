@@ -17,8 +17,7 @@ import java.io.File
  */
 abstract class NpmInstallTask : NpmTask() {
     @get:Internal
-    val nodeModulesOutputFilter =
-            objects.property<Action<ConfigurableFileTree>>()
+    val nodeModulesOutputFilter = objects.property<Action<ConfigurableFileTree>>()
 
     init {
         group = Vaadin.NPM_GROUP

@@ -32,8 +32,6 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.tasks.TaskInputs
-import org.gradle.kotlin.dsl.named
-import org.gradle.kotlin.dsl.register
 import java.io.File
 
 /**
@@ -313,11 +311,11 @@ class Vaadin : Plugin<Project> {
     }
 
     private fun addTasks() {
-        project.tasks.register<NpmInstallTask>(NpmInstallTask.NAME)
-        project.tasks.register<YarnInstallTask>(YarnInstallTask.NAME)
-        project.tasks.register<NodeSetupTask>(NodeSetupTask.NAME)
-        project.tasks.register<NpmSetupTask>(NpmSetupTask.NAME)
-        project.tasks.register<YarnSetupTask>(YarnSetupTask.NAME)
+        project.tasks.register(NpmInstallTask.NAME)
+        project.tasks.register(YarnInstallTask.NAME)
+        project.tasks.register(NodeSetupTask.NAME)
+        project.tasks.register(NpmSetupTask.NAME)
+        project.tasks.register(YarnSetupTask.NAME)
     }
 
     private fun addNpmRule() { // note this rule also makes it possible to specify e.g. "dependsOn npm_install"
@@ -371,7 +369,7 @@ class Vaadin : Plugin<Project> {
         val nodeArchiveDependency = variantComputer.computeNodeArchiveDependency(vaadinConfig)
         val archiveFileProvider = resolveNodeArchiveFile(nodeArchiveDependency)
 
-        project.tasks.named<NodeSetupTask>(NodeSetupTask.NAME) {
+        project.tasks.named(NodeSetupTask.NAME, NodeSetupTask::class.java) {
             val provider = project.objects.fileProperty().apply {
                 set(archiveFileProvider)
             }.asFile

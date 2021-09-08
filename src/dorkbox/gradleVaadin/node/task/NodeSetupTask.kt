@@ -33,8 +33,6 @@ abstract class NodeSetupTask : DefaultTask() {
     @get:Inject
     abstract val providers: ProviderFactory
 
-    @get:Internal
-    internal val variantComputer = VariantComputer()
     private val vaadinConfig = VaadinConfig[project]
 
     @get:Input
@@ -51,9 +49,9 @@ abstract class NodeSetupTask : DefaultTask() {
 
     private val debug = vaadinConfig.debug
 
-    private val nodeExec = variantComputer.computeNodeExec(vaadinConfig)
-    private val npmExec = variantComputer.computeNpmExec(vaadinConfig)
-    private val pNpmScript = variantComputer.computePnpmScriptFile(vaadinConfig)
+    private val nodeExec = VariantComputer.computeNodeExec(vaadinConfig)
+    private val npmExec = VariantComputer.computeNpmExec(vaadinConfig)
+    private val pNpmScript = VariantComputer.computePnpmScriptFile(vaadinConfig)
     private val enablePnpm = vaadinConfig.enablePnpm
 
     private var detectedNodeVersion = ""
@@ -141,7 +139,7 @@ abstract class NodeSetupTask : DefaultTask() {
     private fun unpackNodeArchive() {
         val archiveFile = nodeArchiveFile.get().asFile
         val nodeDirProvider = vaadinConfig.nodeJsDir
-        val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
+        val nodeBinDirProvider = VariantComputer.computeNodeBinDir(nodeDirProvider)
 
         println("\t   Unpack: ${archiveFile}")
 
@@ -159,13 +157,13 @@ abstract class NodeSetupTask : DefaultTask() {
             // Fix broken symlink
             val nodeBinDirPath = nodeBinDirProvider.get().asFile.toPath()
             val npm = nodeBinDirPath.resolve("npm")
-            val npmScriptFile = variantComputer.computeNpmScriptFile(nodeDirProvider, "npm")
+            val npmScriptFile = VariantComputer.computeNpmScriptFile(nodeDirProvider, "npm")
             if (Files.deleteIfExists(npm)) {
                 Files.createSymbolicLink(npm, nodeBinDirPath.relativize(Paths.get(npmScriptFile)))
             }
 
             val npx = nodeBinDirPath.resolve("npx")
-            val npxScriptFile = variantComputer.computeNpmScriptFile(nodeDirProvider, "npx")
+            val npxScriptFile = VariantComputer.computeNpmScriptFile(nodeDirProvider, "npx")
             if (Files.deleteIfExists(npx)) {
                 Files.createSymbolicLink(npx, nodeBinDirPath.relativize(Paths.get(npxScriptFile)))
             }
@@ -174,7 +172,7 @@ abstract class NodeSetupTask : DefaultTask() {
 
     private fun renameDirectory() {
         val nodeDirProvider = vaadinConfig.nodeJsDir
-        val extractionName = variantComputer.computeExtractionName(vaadinConfig)
+        val extractionName = VariantComputer.computeExtractionName(vaadinConfig)
 
         val nodeDir = nodeDirProvider.get().asFile
         val baseFile = nodeDir.parentFile
@@ -192,8 +190,8 @@ abstract class NodeSetupTask : DefaultTask() {
     private fun setExecutableFlag() {
         if (!PlatformHelper.INSTANCE.isWindows) {
             val nodeDirProvider = vaadinConfig.nodeJsDir
-            val nodeBinDirProvider = variantComputer.computeNodeBinDir(nodeDirProvider)
-            val nodeExecProvider = variantComputer.computeNodeExec(vaadinConfig, nodeBinDirProvider)
+            val nodeBinDirProvider = VariantComputer.computeNodeBinDir(nodeDirProvider)
+            val nodeExecProvider = VariantComputer.computeNodeExec(vaadinConfig, nodeBinDirProvider)
             File(nodeExecProvider.get()).setExecutable(true)
         }
     }
@@ -211,6 +209,7 @@ abstract class NodeSetupTask : DefaultTask() {
             var parsedVersion = Version.from(detectedVersion)
             detectedNodeVersion = detectedVersion
 
+            @Suppress("DEPRECATION")
             val SUPPORTED_NODE_VERSION = Version.from(Constants.SUPPORTED_NODE_MAJOR_VERSION, Constants.SUPPORTED_NODE_MINOR_VERSION)
             val nodeIsOK = validateToolVersion("node", parsedVersion, SUPPORTED_NODE_VERSION, silent)
 
@@ -225,6 +224,7 @@ abstract class NodeSetupTask : DefaultTask() {
             detectedNpmVersion = detectedVersion
 
 
+            @Suppress("DEPRECATION")
             val SUPPORTED_NPM_VERSION = Version.from(Constants.SUPPORTED_NPM_MAJOR_VERSION, Constants.SUPPORTED_NPM_MINOR_VERSION)
             val npmIsOK = validateToolVersion("npm", parsedVersion, SUPPORTED_NPM_VERSION, silent)
 

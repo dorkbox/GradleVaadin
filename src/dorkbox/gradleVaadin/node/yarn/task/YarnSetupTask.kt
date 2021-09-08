@@ -24,8 +24,7 @@ abstract class YarnSetupTask : NpmSetupTask() {
 
     @get:OutputDirectory
     val yarnDir by lazy {
-        val variantComputer = VariantComputer()
-        variantComputer.computeYarnDir(vaadinConfig)
+        VariantComputer.computeYarnDir(vaadinConfig)
     }
 
     override fun computeCommand(): List<String> {
