@@ -4,6 +4,7 @@ import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.InitParameters
 import com.vaadin.flow.server.frontend.*
 import com.vaadin.flow.server.frontend.scanner.FrontendDependenciesScanner
+import dorkbox.executor.Executor
 import dorkbox.gradleVaadin.node.NodeInfo
 import elemental.json.Json
 import org.gradle.api.Project
@@ -22,7 +23,6 @@ internal class VaadinCompiler(val project: Project) {
 
     val baseDir = config.sourceRootDir
     val buildDir = config.buildDir
-
 
 
     // REGARDING the current version of polymer.
@@ -127,7 +127,7 @@ internal class VaadinCompiler(val project: Project) {
 
     // dev
     fun createTokenFile() {
-        val productionMode = config.productionMode.get()
+        val productionMode: Boolean = config.productionMode.get()
 
         println("\tCreating configuration token file: ${nodeInfo.tokenFile}")
         println("\tProduction mode: $productionMode")
@@ -158,20 +158,14 @@ internal class VaadinCompiler(val project: Project) {
     }
 
     // dev
-    fun copyToken() {
-        // fix token file location
-        println("\tCopying token file...")
-        nodeInfo.tokenFile.copyTo(nodeInfo.vaadinDir.resolve(FrontendUtils.TOKEN_FILE), overwrite = true)
-    }
-
-    // dev
     fun fixWebpackTemplate() {
         TaskUpdateWebpack_.execute(nodeInfo, customClassFinder)
     }
 
     // dev
     fun enableImportsUpdate() {
-        TaskUpdateImports_.execute(nodeInfo, customClassFinder, frontendDependencies)
+        val additionalFrontendModules = emptyList<String>() // TODO: get this from the plugin configuration
+        TaskUpdateImports_.execute(nodeInfo, customClassFinder, frontendDependencies, additionalFrontendModules)
     }
 
 
@@ -185,7 +179,50 @@ internal class VaadinCompiler(val project: Project) {
 
     // production
     fun generateWebPack() {
-        NodeUpdaterAccess.generateWebPack(nodeInfo, nodeInfo.webPackExecutableFile, nodeInfo.webPackProdFile)
+        val webPackExecutableFile = nodeInfo.webPackExecutableFile
+        val debug = nodeInfo.debug
+
+        val start = System.nanoTime()
+
+        // For information about webpack, SEE https://webpack.js.org/guides/getting-started/
+        println("\tGenerating WebPack")
+
+        val ex = Executor()
+
+        ex.executable(nodeInfo.nodeBinExec)
+        ex.workingDirectory(nodeInfo.buildDir)
+
+        ex.environment["ADBLOCK"] = "1"
+        ex.environment["NO_UPDATE_NOTIFIER"] = "1"
+
+        // --scripts-prepend-node-path is added to fix path issues
+        ex.addArg(webPackExecutableFile.path, "--config", nodeInfo.webPackProdFile.path,
+            "--scripts-prepend-node-path"
+        )
+
+        if (!debug) {
+            ex.addArg("--silent")
+        }
+
+        if (debug) {
+            ex.enableRead()
+            Util.execDebug(ex)
+        }
+
+        val process = ex.startBlocking()
+        if (debug) {
+            println("\t\tOutput:")
+            process.output.linesAsUtf8().forEach {
+                println("\t\t\t$it")
+            }
+        }
+
+        if (process.exitValue != 0) {
+            println("Process failed with ${process.exitValue}!")
+        }
+
+        val ms = (System.nanoTime() - start) / 1000000
+        println("\t\tFinished in $ms ms")
     }
 
     fun finish() {

@@ -61,6 +61,7 @@ class NodeInfo(val project: Project) {
     val generatedFilesDir = buildDir.resolve(FrontendUtils.FRONTEND)
 
     val flowImportFile = generatedFilesDir.resolve(FrontendUtils.IMPORTS_NAME)
+    val flowFallbackImportFile = generatedFilesDir.resolve(FrontendUtils.FALLBACK_IMPORTS_NAME)
 
 
     val nodeDirProvider = config.nodeJsDir

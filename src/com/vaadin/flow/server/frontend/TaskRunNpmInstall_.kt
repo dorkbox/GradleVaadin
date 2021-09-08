@@ -84,10 +84,10 @@ object TaskRunNpmInstall_ {
                     it.deleteRecursively()
                 }
             } else if (!enablePnpm) {
-                buildDir.resolve("pnpmfile.js").also { pnpmFile ->
-                    if (pnpmFile.exists()) {
+                buildDir.resolve("pnpmfile.js").also { pnpmScriptFile ->
+                    if (pnpmScriptFile.exists()) {
                         println("\tCleaning up after change in pnpm installation")
-                        pnpmFile.delete()
+                        pnpmScriptFile.delete()
 
                         buildDir.resolve("package.json").also { if (it.exists()) it.delete() } // reset this file
                         buildDir.resolve("versions.json").also { if (it.exists()) it.delete() }
@@ -156,7 +156,7 @@ object TaskRunNpmInstall_ {
         ex.environment["NO_UPDATE_NOTIFIER"] = "1"
 
         val scriptFile = if (enablePnpm) nodeInfo.pnpmScript.absolutePath else nodeInfo.npmScript
-        ex.addArg(scriptFile, "install")
+        ex.addArg(scriptFile, "install", "--scripts-prepend-node-path")
 
         val debug = VaadinConfig[nodeInfo.project].debug
 

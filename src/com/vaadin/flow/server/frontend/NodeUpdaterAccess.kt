@@ -3,10 +3,7 @@ package com.vaadin.flow.server.frontend
 import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.frontend.scanner.ClassFinder
 import com.vaadin.flow.server.frontend.scanner.FrontendDependenciesScanner
-import dorkbox.executor.Executor
 import dorkbox.gradleVaadin.JsonPackageTools
-import dorkbox.gradleVaadin.VaadinConfig
-import dorkbox.gradleVaadin.node.NodeInfo
 import elemental.json.JsonObject
 import org.slf4j.Logger
 import java.io.File
@@ -26,49 +23,6 @@ class NodeUpdaterAccess(
     generatedPath: File?,
     val logger: Logger
 ) : NodeUpdater(finder, frontendDependencies, npmFolder, generatedPath) {
-    companion object {
-        fun generateWebPack(nodeInfo: NodeInfo, webPackExecutableFile: File, webPackProdFile: File) {
-            val start = System.nanoTime()
-
-            // For information about webpack, SEE https://webpack.js.org/guides/getting-started/
-            println("\tGenerating WebPack")
-
-            val ex = Executor()
-
-            ex.executable(nodeInfo.nodeBinExec)
-            ex.workingDirectory(nodeInfo.buildDir)
-
-            ex.environment["ADBLOCK"] = "1"
-            ex.environment["NO_UPDATE_NOTIFIER"] = "1"
-
-            // --scripts-prepend-node-path is added to fix path issues
-            ex.addArg(webPackExecutableFile.path, "--config", webPackProdFile.absolutePath, "--silent", "--scripts-prepend-node-path")
-
-            val debug = VaadinConfig[nodeInfo.project].debug
-
-            if (debug) {
-                ex.enableRead()
-                Util.execDebug(ex)
-            }
-
-            val process = ex.startBlocking()
-
-            if (debug) {
-                println("\t\tOutput:")
-                process.output.linesAsUtf8().forEach {
-                    println("\t\t\t$it")
-                }
-            }
-
-            if (process.exitValue != 0) {
-                println("Process failed with ${process.exitValue}!")
-            }
-
-            val ms = (System.nanoTime() - start) / 1000000
-            println("\t\tFinished in $ms ms")
-        }
-    }
-
     override fun execute() {
         TODO("Not yet implemented")
     }

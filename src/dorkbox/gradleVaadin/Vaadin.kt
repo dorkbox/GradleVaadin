@@ -82,6 +82,7 @@ class Vaadin : Plugin<Project> {
     private lateinit var project: Project
     private lateinit var config: VaadinConfig
 
+
     private fun newTask(dependencyTask: Task,
                         taskName: String,
                         description: String,
@@ -139,16 +140,27 @@ class Vaadin : Plugin<Project> {
             val runTasks = gradle.startParameter.taskNames
             if (runTasks.any { it == compileProdName }) {
                 // every other task will do nothing (run as dev mode).
-                VaadinConfig[project].productionMode.set(true)
+                config.productionMode.set(true)
             }
 
             try {
                 if (config.download.get()) {
                     config.distBaseUrl.orNull?.let { addNodeRepository(it) }
-                    configureNodeSetupTask(config)
+
+                    val nodeArchiveDependency = VariantComputer.computeNodeArchiveDependency(config)
+                    val archiveFileProvider = resolveNodeArchiveFile(nodeArchiveDependency)
+
+                    project.tasks.named(NodeSetupTask.NAME, NodeSetupTask::class.java) {
+                        val provider = project.objects.fileProperty().apply {
+                            set(archiveFileProvider)
+                        }.asFile
+
+                        nodeArchiveFile.set(project.layout.file(provider))
+                    }
                 }
             } catch (e: Exception) {
                 println("Unable to configure NodeJS repository: ${config.nodeVersion}")
+                e.printStackTrace()
             }
         }
 
@@ -160,7 +172,11 @@ class Vaadin : Plugin<Project> {
             }
         }
 
-        val nodeSetup = project.tasks.named(NodeSetupTask.NAME).get()
+
+        val nodeSetup = project.tasks.named(NodeSetupTask.NAME).get().apply {
+            // our class-scanner scans COMPILED CLASSES, so this is required.
+            dependsOn(project.tasks.named("classes"))
+        }
 
         val generateWebComponents = newTask(nodeSetup, "generateWebComponents", "Generate Vaadin web components")
         { vaadinCompiler ->
@@ -179,7 +195,6 @@ class Vaadin : Plugin<Project> {
 //            files(vaadinCompiler.jsonPackageFile)
             })
         { vaadinCompiler ->
-            VaadinCompile.print()
             vaadinCompiler.prepareJsonFiles()
         }
 
@@ -196,7 +211,6 @@ class Vaadin : Plugin<Project> {
         val createTokenFile = newTask(copyLocalResources, "createTokenFile", "Create Vaadin token file")
         { vaadinCompiler ->
             vaadinCompiler.createTokenFile()
-            vaadinCompiler.copyToken()
         }
 
         val updateWebPack = newTask(createTokenFile, "updateWebPack", "Compile Vaadin resources for Production")
@@ -229,6 +243,11 @@ class Vaadin : Plugin<Project> {
 
 
         val generateWebPack = newTask(enableImportsUpdate, "generateWebPack", "Compile Vaadin resources for Production")
+        { vaadinCompiler ->
+            vaadinCompiler.generateWebPack()
+        }
+
+        val generateWebPackTweak = newTask(nodeSetup, "generateWebPackTweak", "Compile Vaadin resources for Production")
         { vaadinCompiler ->
             vaadinCompiler.generateWebPack()
         }
@@ -311,11 +330,11 @@ class Vaadin : Plugin<Project> {
     }
 
     private fun addTasks() {
-        project.tasks.register(NpmInstallTask.NAME)
-        project.tasks.register(YarnInstallTask.NAME)
-        project.tasks.register(NodeSetupTask.NAME)
-        project.tasks.register(NpmSetupTask.NAME)
-        project.tasks.register(YarnSetupTask.NAME)
+        project.tasks.register(NpmInstallTask.NAME, NpmInstallTask::class.java)
+        project.tasks.register(YarnInstallTask.NAME, YarnInstallTask::class.java)
+        project.tasks.register(NodeSetupTask.NAME, NodeSetupTask::class.java)
+        project.tasks.register(NpmSetupTask.NAME, NpmSetupTask::class.java)
+        project.tasks.register(YarnSetupTask.NAME, YarnSetupTask::class.java)
     }
 
     private fun addNpmRule() { // note this rule also makes it possible to specify e.g. "dependsOn npm_install"
@@ -361,20 +380,6 @@ class Vaadin : Plugin<Project> {
             content {
                 includeModule("org.nodejs", "node")
             }
-        }
-    }
-
-    private fun configureNodeSetupTask(vaadinConfig: VaadinConfig) {
-        val variantComputer = VariantComputer()
-        val nodeArchiveDependency = variantComputer.computeNodeArchiveDependency(vaadinConfig)
-        val archiveFileProvider = resolveNodeArchiveFile(nodeArchiveDependency)
-
-        project.tasks.named(NodeSetupTask.NAME, NodeSetupTask::class.java) {
-            val provider = project.objects.fileProperty().apply {
-                set(archiveFileProvider)
-            }.asFile
-
-            nodeArchiveFile.set(project.layout.file(provider))
         }
     }
 

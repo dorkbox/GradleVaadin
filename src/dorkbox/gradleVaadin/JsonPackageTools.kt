@@ -175,7 +175,7 @@ class JsonPackageTools {
             val relative = relativize(fileSource, fileTarget)
 
             if (getHash(fileSource) != getHash(fileTarget)) {
-                val canRead = fileSource.copyTo(fileTarget, true).canRead()
+                val canRead = fileSource.copyTo(target = fileTarget, overwrite = true).canRead()
                 if (canRead) {
                     println("\tCopy SUCCESS: $fileSource -> $relative")
                 } else {
