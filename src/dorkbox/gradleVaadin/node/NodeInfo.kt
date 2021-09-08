@@ -25,7 +25,7 @@ class NodeInfo(val project: Project) {
 
     val metaInfDir = sourceDir.resolve("resources").resolve("META-INF")
 
-    val outputMetaInfDir = buildDir.resolve("resources").resolve("META-INF")
+    val outputMetaInfDir = buildDir.resolve("resources").resolve("main").resolve("META-INF")
     val vaadinDir = outputMetaInfDir.resolve("resources").resolve("VAADIN")
     val tokenFile = vaadinDir.resolve(FrontendUtils.TOKEN_FILE)
 
