@@ -117,9 +117,9 @@ class Vaadin : Plugin<Project> {
         project.tasks.create("prepare_jar_libraries", PrepJarsTask::class.java)
 
         project.repositories.apply {
-            maven { setUrl("https://maven.vaadin.com/vaadin-addons") } // Vaadin Addons
-            maven { setUrl("https://maven.vaadin.com/vaadin-prereleases") } // Pre-releases
-            maven { setUrl("https://oss.sonatype.org/content/repositories/vaadin-snapshots") } // Vaadin Snapshots
+            maven { it.setUrl("https://maven.vaadin.com/vaadin-addons") } // Vaadin Addons
+            maven { it.setUrl("https://maven.vaadin.com/vaadin-prereleases") } // Pre-releases
+            maven { it.setUrl("https://oss.sonatype.org/content/repositories/vaadin-snapshots") } // Vaadin Snapshots
         }
 
         project.dependencies.apply {
@@ -136,8 +136,9 @@ class Vaadin : Plugin<Project> {
 
 
 
-        project.afterEvaluate {
-            val runTasks = gradle.startParameter.taskNames
+        project.afterEvaluate { proj ->
+            val runTasks = proj.gradle.startParameter.taskNames
+
             if (runTasks.any { it == compileProdName }) {
                 // every other task will do nothing (run as dev mode).
                 config.productionMode.set(true)
@@ -150,12 +151,12 @@ class Vaadin : Plugin<Project> {
                     val nodeArchiveDependency = VariantComputer.computeNodeArchiveDependency(config)
                     val archiveFileProvider = resolveNodeArchiveFile(nodeArchiveDependency)
 
-                    project.tasks.named(NodeSetupTask.NAME, NodeSetupTask::class.java) {
+                    project.tasks.named(NodeSetupTask.NAME, NodeSetupTask::class.java) { nodeTask ->
                         val provider = project.objects.fileProperty().apply {
                             set(archiveFileProvider)
                         }.asFile
 
-                        nodeArchiveFile.set(project.layout.file(provider))
+                        nodeTask.nodeArchiveFile.set(project.layout.file(provider))
                     }
                 }
             } catch (e: Exception) {
@@ -197,6 +198,43 @@ class Vaadin : Plugin<Project> {
         { vaadinCompiler ->
             vaadinCompiler.prepareJsonFiles()
         }
+//
+        /**
+         * Get if the stats.json file should be retrieved from an external service
+         * or through the classpath.
+         *
+         * @return true if stats.json is served from an external location
+         */
+//        default boolean isStatsExternal() {
+//            return getBooleanProperty(Constants.EXTERNAL_STATS_FILE, false);
+//        }
+// /**
+        //     * Get the url from where stats.json should be retrieved from. If not given
+        //     * this will default to '/vaadin-static/VAADIN/config/stats.json'
+        //     *
+        //     * @return external stats.json location
+        //     */
+        //    default String getExternalStatsUrl() {
+        //        return getStringProperty(Constants.EXTERNAL_STATS_URL,
+        //                Constants.DEFAULT_EXTERNAL_STATS_URL);
+        //    }
+
+
+        // private static InputStream getStatsFromClassPath(VaadinService service) {
+        //        String stats = service.getDeploymentConfiguration()
+        //                .getStringProperty(SERVLET_PARAMETER_STATISTICS_JSON,
+        //                        VAADIN_SERVLET_RESOURCES + STATISTICS_JSON_DEFAULT)
+        //                // Remove absolute
+        //                .replaceFirst("^/", "");
+        //        InputStream stream = service.getClassLoader()
+        //                .getResourceAsStream(stats);
+        //        if (stream == null) {
+        //            getLogger().error(
+        //                    "Cannot get the 'stats.json' from the classpath '{}'",
+        //                    stats);
+        //        }
+        //        return stream;
+        //    }
 
         val copyJarResources = newTask(prepareJsonFiles, "copyJarResources", "Compile Vaadin resources for Production")
         { vaadinCompiler ->
@@ -246,12 +284,6 @@ class Vaadin : Plugin<Project> {
         { vaadinCompiler ->
             vaadinCompiler.generateWebPack()
         }
-
-        val generateWebPackTweak = newTask(nodeSetup, "generateWebPackTweak", "Compile Vaadin resources for Production")
-        { vaadinCompiler ->
-            vaadinCompiler.generateWebPack()
-        }
-
 
         project.tasks.create(compileDevName).apply {
             dependsOn(createTokenFile, project.tasks.named("classes"))
@@ -338,14 +370,13 @@ class Vaadin : Plugin<Project> {
     }
 
     private fun addNpmRule() { // note this rule also makes it possible to specify e.g. "dependsOn npm_install"
-        project.tasks.addRule("Pattern: \"npm_<command>\": Executes an NPM command.") {
-            val taskName = this
+        project.tasks.addRule("Pattern: \"npm_<command>\": Executes an NPM command.") { taskName ->
             if (taskName.startsWith("npm_")) {
                 project.tasks.create(taskName, NpmTask::class.java) {
                     val tokens = taskName.split("_").drop(1) // all except first
-                    npmCommand.set(tokens)
+                    it.npmCommand.set(tokens)
                     if (tokens.first().equals("run", ignoreCase = true)) {
-                        dependsOn(NpmInstallTask.NAME)
+                        it.dependsOn(NpmInstallTask.NAME)
                     }
                 }
             }
@@ -353,14 +384,13 @@ class Vaadin : Plugin<Project> {
     }
 
     private fun addYarnRule() { // note this rule also makes it possible to specify e.g. "dependsOn yarn_install"
-        project.tasks.addRule("Pattern: \"yarn_<command>\": Executes an Yarn command.") {
-            val taskName = this
+        project.tasks.addRule("Pattern: \"yarn_<command>\": Executes an Yarn command.") { taskName ->
             if (taskName.startsWith("yarn_")) {
                 project.tasks.create(taskName, YarnTask::class.java) {
                     val tokens = taskName.split("_").drop(1) // all except first
-                    yarnCommand.set(tokens)
+                    it.yarnCommand.set(tokens)
                     if (tokens.first().equals("run", ignoreCase = true)) {
-                        dependsOn(YarnInstallTask.NAME)
+                        it.dependsOn(YarnInstallTask.NAME)
                     }
                 }
             }
@@ -369,16 +399,16 @@ class Vaadin : Plugin<Project> {
 
     private fun addNodeRepository(distUrl: String) {
         project.repositories.ivy {
-            name = "Node.js"
-            setUrl(distUrl)
-            patternLayout {
-                artifact("[revision]/[artifact](-[revision]-[classifier]).[ext]")
+            it.name = "Node.js"
+            it.setUrl(distUrl)
+            it.patternLayout { t ->
+                t.artifact("[revision]/[artifact](-[revision]-[classifier]).[ext]")
             }
-            metadataSources {
-                artifact()
+            it.metadataSources { t ->
+                t.artifact()
             }
-            content {
-                includeModule("org.nodejs", "node")
+            it.content { t ->
+                t.includeModule("org.nodejs", "node")
             }
         }
     }

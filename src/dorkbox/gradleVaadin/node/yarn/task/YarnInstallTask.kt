@@ -6,10 +6,10 @@ import org.gradle.api.Action
 import org.gradle.api.file.ConfigurableFileTree
 import org.gradle.api.file.Directory
 import org.gradle.api.file.FileTree
+import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.PathSensitivity.RELATIVE
-import org.gradle.kotlin.dsl.property
 import java.io.File
 
 /**
@@ -17,8 +17,9 @@ import java.io.File
  */
 abstract class YarnInstallTask : YarnTask() {
 
+    @Suppress("UNCHECKED_CAST")
     @get:Internal
-    val nodeModulesOutputFilter = objects.property<Action<ConfigurableFileTree>>()
+    val nodeModulesOutputFilter = objects.property(Action::class.java) as Property<Action<ConfigurableFileTree>>
 
     init {
         group = Vaadin.YARN_GROUP

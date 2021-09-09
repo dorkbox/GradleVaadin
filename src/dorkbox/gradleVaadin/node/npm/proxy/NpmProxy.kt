@@ -1,6 +1,7 @@
 package dorkbox.gradleVaadin.node.npm.proxy
 
 import java.net.URLEncoder
+import java.util.*
 import java.util.stream.Collectors.toList
 import java.util.stream.Stream
 import kotlin.text.Charsets.UTF_8
@@ -46,9 +47,11 @@ internal class NpmProxy {
          */
         fun hasProxyConfiguration(env: Map<String, String>): Boolean {
             return env.keys.any {
-                proxyVariables.contains(it.toUpperCase()) || npmProxyVariables.contains(it.toUpperCase())
+                proxyVariables.contains(it.uppercase(Locale.getDefault())) || npmProxyVariables.contains(it.uppercase(Locale.getDefault()))
             }
         }
+
+        private val regex = "^https?://".toRegex()
 
         private fun computeProxyUrlEnvironmentVariables(): MutableMap<String, String> {
             val proxyArgs = mutableMapOf<String, String>()
@@ -57,12 +60,11 @@ internal class NpmProxy {
                 var proxyHost = System.getProperty("$proxyProto.proxyHost")
                 val proxyPort = System.getProperty("$proxyProto.proxyPort")
                 if (proxyHost != null && proxyPort != null) {
-                    proxyHost = proxyHost.replace("^https?://".toRegex(), "")
+                    proxyHost = proxyHost.replace(regex, "")
                     val proxyUser = System.getProperty("$proxyProto.proxyUser")
                     val proxyPassword = System.getProperty("$proxyProto.proxyPassword")
                     if (proxyUser != null && proxyPassword != null) {
-                        proxyArgs[proxyParam] =
-                                "http://${encode(proxyUser)}:${encode(proxyPassword)}@$proxyHost:$proxyPort"
+                        proxyArgs[proxyParam] = "http://${encode(proxyUser)}:${encode(proxyPassword)}@$proxyHost:$proxyPort"
                     } else {
                         proxyArgs[proxyParam] = "http://$proxyHost:$proxyPort"
                     }

@@ -15,7 +15,6 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
-import org.gradle.kotlin.dsl.listProperty
 import java.io.File
 import javax.inject.Inject
 
@@ -37,7 +36,7 @@ abstract class NpmSetupTask : DefaultTask() {
     val projectHelper = ProjectApiHelper.newInstance(project)
 
     @get:Input
-    val args = objects.listProperty<String>()
+    val args = objects.listProperty(String::class.java)
 
     @get:Input
     val download = vaadinConfig.download

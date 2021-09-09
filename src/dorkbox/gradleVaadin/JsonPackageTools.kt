@@ -175,7 +175,18 @@ class JsonPackageTools {
             val relative = relativize(fileSource, fileTarget)
 
             if (getHash(fileSource) != getHash(fileTarget)) {
-                val canRead = fileSource.copyTo(target = fileTarget, overwrite = true).canRead()
+                val max = 20
+                var count = 0
+                while (!fileTarget.delete() && count++ < max) {
+                    // sometimes the file is locked, so we should wait
+                    Thread.sleep(500L)
+                }
+
+                if (!fileTarget.delete()) {
+                    println("Unable to overwrite file: $fileTarget")
+                }
+
+                val canRead = fileSource.copyTo(fileTarget, true).canRead()
                 if (canRead) {
                     println("\tCopy SUCCESS: $fileSource -> $relative")
                 } else {

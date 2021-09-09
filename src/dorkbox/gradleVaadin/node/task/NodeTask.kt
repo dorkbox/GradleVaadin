@@ -8,12 +8,10 @@ import dorkbox.gradleVaadin.node.util.ProjectApiHelper
 import org.gradle.api.Action
 import org.gradle.api.DefaultTask
 import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.Property
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.*
 import org.gradle.api.tasks.PathSensitivity.RELATIVE
-import org.gradle.kotlin.dsl.listProperty
-import org.gradle.kotlin.dsl.mapProperty
-import org.gradle.kotlin.dsl.property
 import org.gradle.process.ExecSpec
 import javax.inject.Inject
 
@@ -38,19 +36,19 @@ abstract class NodeTask : DefaultTask() {
      * Arguments to be passed to Node.js
      */
     @get:Input
-    val options = objects.listProperty<String>()
+    val options = objects.listProperty(String::class.java)
 
     /**
      * Additional arguments for the [script] being run.
      */
     @get:Input
-    val args = objects.listProperty<String>()
+    val args = objects.listProperty(String::class.java)
 
     /**
      * If enabled prevents the task from failing if the exit code is not 0. Defaults to false.
      */
     @get:Input
-    val ignoreExitValue = objects.property<Boolean>().convention(false)
+    val ignoreExitValue = objects.property(Boolean::class.java).convention(false)
 
     /**
      * Sets the working directory.
@@ -62,10 +60,11 @@ abstract class NodeTask : DefaultTask() {
      * Add additional environment variables or override environment variables inherited from the system.
      */
     @get:Input
-    val environment = objects.mapProperty<String, String>()
+    val environment = objects.mapProperty(String::class.java, String::class.java)
 
+    @Suppress("UNCHECKED_CAST")
     @get:Internal
-    val execOverrides = objects.property<Action<ExecSpec>>()
+    val execOverrides = objects.property(Action::class.java) as Property<Action<ExecSpec>>
 
     @get:Internal
     val projectHelper = ProjectApiHelper.newInstance(project)

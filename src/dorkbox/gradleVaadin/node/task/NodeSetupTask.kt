@@ -132,7 +132,7 @@ abstract class NodeSetupTask : DefaultTask() {
 
         projectHelper.delete {
             // only delete the nodejs dir, NOT the parent dir!
-            delete(nodeDir)
+            it.delete(nodeDir)
         }
     }
 
@@ -145,13 +145,13 @@ abstract class NodeSetupTask : DefaultTask() {
 
         if (archiveFile.name.endsWith("zip")) {
             projectHelper.copy {
-                from(projectHelper.zipTree(archiveFile))
-                into(vaadinConfig.buildDir)
+                it.from(projectHelper.zipTree(archiveFile))
+                it.into(vaadinConfig.buildDir)
             }
         } else {
             projectHelper.copy {
-                from(projectHelper.tarTree(archiveFile))
-                into(vaadinConfig.buildDir)
+                it.from(projectHelper.tarTree(archiveFile))
+                it.into(vaadinConfig.buildDir)
             }
 
             // Fix broken symlink

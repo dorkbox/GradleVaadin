@@ -7,12 +7,12 @@ import java.io.File
 internal class ExecRunner {
     fun execute(projectHelper: ProjectApiHelper, extension: VaadinConfig, execConfiguration: ExecConfiguration) {
         projectHelper.exec {
-            executable = execConfiguration.executable
-            args = execConfiguration.args
-            environment = computeEnvironment(execConfiguration)
-            isIgnoreExitValue = execConfiguration.ignoreExitValue
-            workingDir = computeWorkingDir(extension.buildDir, execConfiguration)
-            execConfiguration.execOverrides?.execute(this)
+            it.executable = execConfiguration.executable
+            it.args = execConfiguration.args
+            it.environment = computeEnvironment(execConfiguration)
+            it.isIgnoreExitValue = execConfiguration.ignoreExitValue
+            it.workingDir = computeWorkingDir(extension.buildDir, execConfiguration)
+            execConfiguration.execOverrides?.execute(it)
         }
     }
 

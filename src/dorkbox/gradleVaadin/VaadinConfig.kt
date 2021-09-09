@@ -19,9 +19,8 @@ import com.vaadin.flow.server.frontend.FrontendTools
 import dorkbox.gradleVaadin.node.npm.proxy.ProxySettings
 import org.gradle.api.Project
 import org.gradle.api.tasks.Input
-import org.gradle.kotlin.dsl.getByType
-import org.gradle.kotlin.dsl.property
 import java.io.File
+import java.util.*
 
 open class VaadinConfig(private val project: Project): java.io.Serializable {
     companion object {
@@ -34,7 +33,7 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
 
         @JvmStatic
         operator fun get(project: Project): VaadinConfig {
-            return project.extensions.getByType()
+            return project.extensions.getByType(VaadinConfig::class.java)
         }
 
         @JvmStatic
@@ -50,7 +49,7 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
 
 
     // this changes if the build production task is run. WE DO NOT MANUALLY CHANGE THIS, it is automatic!
-    internal var productionMode = project.objects.property<Boolean>().convention(false)
+    internal var productionMode = project.objects.property(Boolean::class.java).convention(false)
 
     internal val nodeModulesDir: File
     get() {
@@ -61,7 +60,7 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
      * Directory where all of the source code lives
      */
     @get:Input
-    protected var sourceRootDir_ = project.objects.property<File>().convention(project.projectDir)
+    protected var sourceRootDir_ = project.objects.property(File::class.java).convention(project.projectDir)
     var sourceRootDir: File
         get() { return sourceRootDir_.get() }
         set(value) { sourceRootDir_.set(value)}
@@ -72,7 +71,7 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
      * Also where package.json and the node_modules directory are located
      */
     @get:Input
-    protected var buildDir_ = project.objects.property<File>().convention(project.buildDir)
+    protected var buildDir_ = project.objects.property(File::class.java).convention(project.buildDir)
     var buildDir: File
         get() { return buildDir_.get() }
         set(value) { buildDir_.set(value)}
@@ -80,7 +79,7 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
 
     // the gradle property model is retarded, but sadly the "right way to do it"
     @get:Input
-    protected var debug_ = project.objects.property<Boolean>().convention(false)
+    protected var debug_ = project.objects.property(Boolean::class.java).convention(false)
     var debug: Boolean
     get() { return debug_.get() }
     set(value) { debug_.set(value)}
@@ -88,14 +87,14 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
 
     // the gradle property model is retarded,`` but sadly the "right way to do it"
     @get:Input
-    protected var enablePnpm_ = project.objects.property<Boolean>().convention(false)
+    protected var enablePnpm_ = project.objects.property(Boolean::class.java).convention(false)
     var enablePnpm: Boolean
         get() { return enablePnpm_.get() }
         set(value) { enablePnpm_.set(value)}
 
 
     @get:Input
-    protected var flowDirectory_ = project.objects.property<String>().convention("./${com.vaadin.flow.server.frontend.FrontendUtils.FRONTEND}")
+    protected var flowDirectory_ = project.objects.property(String::class.java).convention("./${com.vaadin.flow.server.frontend.FrontendUtils.FRONTEND}")
     var flowDirectory: String
     get() { return flowDirectory_.get() }
     set(value) { flowDirectory_.set(value)}
@@ -184,10 +183,10 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
      * It will be unpacked in the workDir
      */
     @get:Input
-    protected val nodeVersion_ = project.objects.property<String>().convention(FrontendTools.DEFAULT_NODE_VERSION)
+    protected val nodeVersion_ = project.objects.property(String::class.java).convention(FrontendTools.DEFAULT_NODE_VERSION)
     var nodeVersion: String
         get() { return nodeVersion_.get().let {
-            if (it.toLowerCase().startsWith('v')) {
+            if (it.lowercase(Locale.getDefault()).startsWith('v')) {
                 it
             } else {
                 "v$it"
@@ -200,14 +199,14 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
      * If specified, installs it in the npmWorkDir
      * If empty, the plugin will use the npm command bundled with Node.js
      */
-    val npmVersion = project.objects.property<String>().convention("")
+    val npmVersion = project.objects.property(String::class.java).convention("")
 
     /**
      * Version of Yarn to use
      * Any Yarn task first installs Yarn in the yarnWorkDir
      * It uses the specified version if defined and the latest version otherwise (by default)
      */
-    val yarnVersion = project.objects.property<String>().convention("")
+    val yarnVersion = project.objects.property(String::class.java).convention("")
 
     /**
      * Base URL for fetching node distributions
@@ -215,17 +214,17 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
      * Change it if you want to use a mirror
      * Or set to null if you want to add the repository on your own.
      */
-    val distBaseUrl = project.objects.property<String>().convention("https://nodejs.org/dist")
+    val distBaseUrl = project.objects.property(String::class.java).convention("https://nodejs.org/dist")
 
-    val npmCommand = project.objects.property<String>().convention("npm")
-    val npxCommand = project.objects.property<String>().convention("npx")
-    val yarnCommand = project.objects.property<String>().convention("yarn")
+    val npmCommand = project.objects.property(String::class.java).convention("npm")
+    val npxCommand = project.objects.property(String::class.java).convention("npx")
+    val yarnCommand = project.objects.property(String::class.java).convention("yarn")
 
     /**
      * The npm command executed by the npmInstall task
      * By default it is install but it can be changed to ci
      */
-    val npmInstallCommand = project.objects.property<String>().convention("install")
+    val npmInstallCommand = project.objects.property(String::class.java).convention("install")
 
     /**
      * Whether to download and install a specific Node.js version or not
@@ -233,7 +232,7 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
      * If true, it will download node using above parameters
      * Note that npm is bundled with Node.js
      */
-    var download = project.objects.property<Boolean>().convention(true)
+    var download = project.objects.property(Boolean::class.java).convention(true)
         set(value) {
             field.set(value)
         }
@@ -246,5 +245,5 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
      * (in the .npmrc file for instance)
      *
      */
-    val nodeProxySettings = project.objects.property<ProxySettings>().convention(ProxySettings.SMART)
+    val nodeProxySettings = project.objects.property(ProxySettings::class.java).convention(ProxySettings.SMART)
 }

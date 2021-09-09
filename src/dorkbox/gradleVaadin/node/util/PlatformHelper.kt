@@ -9,7 +9,7 @@ import java.util.stream.Stream
 
 open class PlatformHelper constructor(private val props: Properties = System.getProperties()) {
     open val osName: String by lazy {
-        val name = property("os.name").toLowerCase()
+        val name = property("os.name").lowercase(Locale.getDefault())
         when {
             name.contains("windows") -> "win"
             name.contains("mac") -> "darwin"
@@ -21,14 +21,13 @@ open class PlatformHelper constructor(private val props: Properties = System.get
     }
 
     open val osArch: String by lazy {
-        val arch = property("os.arch").toLowerCase()
+        val arch = property("os.arch").lowercase(Locale.getDefault())
         when {
             /*
              * As Java just returns "arm" on all ARM variants, we need a system call to determine the exact arch. Unfortunately some JVMs say aarch32/64, so we need an additional
              * conditional. Additionally, the node binaries for 'armv8l' are called 'arm64', so we need to distinguish here.
              */
-            arch == "arm" || arch.startsWith("aarch") -> property("uname")
-                .mapIf({ it == "armv8l" || it == "aarch64" }) { "arm64" }
+            arch == "arm" || arch.startsWith("aarch") -> property("uname").mapIf({ it == "armv8l" || it == "aarch64" }) { "arm64" }
             arch == "ppc64le" -> "ppc64le"
             arch.contains("64") -> "x64"
             else -> "x86"
@@ -47,19 +46,20 @@ open class PlatformHelper constructor(private val props: Properties = System.get
 
     companion object {
         var INSTANCE = PlatformHelper()
+        val regex = "\n".toRegex()
+        val regex1 = "^[ ]*$".toRegex()
+        val regex2 = "^v".toRegex()
 
         @Throws(IOException::class)
         fun parseVersionString(output: String): String {
-            val regex = "\n".toRegex()
-            val regex1 = "^[ ]*$".toRegex()
 
-            val lastOuput = Stream.of(*output.split(regex).toTypedArray())
+            val lastOutput = Stream.of(*output.split(regex).toTypedArray())
                 .filter { line: String -> !line.matches(regex1) }
-                .reduce { first: String, second: String -> second }
+                .reduce { _: String, second: String -> second }
 
-            return lastOuput
+            return lastOutput
                 .map { line: String ->
-                    line.replaceFirst("^v".toRegex(), "").trim()
+                    line.replaceFirst(regex2, "").trim()
                 }
                 .orElseThrow { IOException("No output") }
         }
@@ -88,11 +88,10 @@ open class PlatformHelper constructor(private val props: Properties = System.get
         fun isVersionAtLeast(toolVersion: FrontendVersion, required: FrontendVersion): Boolean {
             val major = toolVersion.majorVersion
             val minor = toolVersion.minorVersion
-            return (major > required.majorVersion
-                    || major == required.majorVersion && minor >= required.minorVersion)
+            return (major > required.majorVersion || major == required.majorVersion && minor >= required.minorVersion)
         }
 
-        private fun buildTooOldString(tool: String, version: String,supportedMajor: Int, supportedMinor: Int): String? {
+        private fun buildTooOldString(tool: String, version: String,supportedMajor: Int, supportedMinor: Int): String {
             return String.format(
                 TOO_OLD, tool, version, supportedMajor, supportedMinor,
                 FrontendUtils.PARAM_IGNORE_VERSION_CHECKS
