@@ -161,9 +161,9 @@ class JsonPackageTools {
 
         fun relativize(sourceFile: File, targetFile: File): String {
             // the regex is to make sure that the '/' is properly escaped in the file (otherwise it's interpreted incorrectly by webpack)
-            println("Relativize:")
-            println("\t$sourceFile")
-            println("\t$targetFile")
+//            println("Relativize:")
+//            println("\t$sourceFile")
+//            println("\t$targetFile")
 
 
             val replace = targetFile.toRelativeString(sourceFile).replace(regex, "/")
