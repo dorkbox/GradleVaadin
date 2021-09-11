@@ -77,7 +77,7 @@ internal class VaadinCompiler(val project: Project) {
         if (config.debug) {
             println("\t\t#######")
             println("\t\tFor the compile steps, we match (for the most part) NodeTasks from Vaadin")
-            println("\t\t#######")
+            println("\t\tProduction Mode: ${config.productionMode.get()}")
             println("\t\tVaadin version: ${VaadinConfig.VAADIN_VERSION}")
             println("\t\tPolymer version: $polymerVersion")
 
