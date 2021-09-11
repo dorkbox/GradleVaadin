@@ -28,9 +28,11 @@ import dorkbox.gradleVaadin.node.yarn.task.YarnInstallTask
 import dorkbox.gradleVaadin.node.yarn.task.YarnSetupTask
 import dorkbox.gradleVaadin.node.yarn.task.YarnTask
 import dorkbox.vaadin.compiler.VaadinCompile
+import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.execution.TaskExecutionGraph
 import org.gradle.api.tasks.TaskInputs
 import java.io.File
 
@@ -135,15 +137,16 @@ class Vaadin : Plugin<Project> {
         addYarnRule()
 
 
+        project.gradle.taskGraph.whenReady(object: Action<TaskExecutionGraph> {
+            override fun execute(graph: TaskExecutionGraph) {
+                // every other task will do nothing (run as dev mode).
+                if (graph.allTasks.firstOrNull { it.name == compileProdName } != null) {
+                    config.productionMode.set(true)
+                }
+            }
+        })
 
         project.afterEvaluate { proj ->
-            val runTasks = proj.gradle.startParameter.taskNames
-
-            if (runTasks.any { it == compileProdName }) {
-                // every other task will do nothing (run as dev mode).
-                config.productionMode.set(true)
-            }
-
             try {
                 if (config.download.get()) {
                     config.distBaseUrl.orNull?.let { addNodeRepository(it) }
@@ -151,12 +154,12 @@ class Vaadin : Plugin<Project> {
                     val nodeArchiveDependency = VariantComputer.computeNodeArchiveDependency(config)
                     val archiveFileProvider = resolveNodeArchiveFile(nodeArchiveDependency)
 
-                    project.tasks.named(NodeSetupTask.NAME, NodeSetupTask::class.java) { nodeTask ->
-                        val provider = project.objects.fileProperty().apply {
+                    proj.tasks.named(NodeSetupTask.NAME, NodeSetupTask::class.java) { nodeTask ->
+                        val provider = proj.objects.fileProperty().apply {
                             set(archiveFileProvider)
                         }.asFile
 
-                        nodeTask.nodeArchiveFile.set(project.layout.file(provider))
+                        nodeTask.nodeArchiveFile.set(proj.layout.file(provider))
                     }
                 }
             } catch (e: Exception) {
@@ -166,11 +169,13 @@ class Vaadin : Plugin<Project> {
         }
 
         project.tasks.create(SHUTDOW_TASK).apply {
-            doLast {
-                val vaadinCompiler = VaadinConfig[project].vaadinCompiler
-                // every task MUST call shutdown in order to close the class-scanner (otherwise it will hold open files)
-                vaadinCompiler.finish()
-            }
+            doLast(object: Action<Task> {
+                override fun execute(t: Task) {
+                    val vaadinCompiler = VaadinConfig[project].vaadinCompiler
+                    // every task MUST call shutdown in order to close the class-scanner (otherwise it will hold open files)
+                    vaadinCompiler.finish()
+                }
+            })
         }
 
 
@@ -205,6 +210,13 @@ class Vaadin : Plugin<Project> {
          *
          * @return true if stats.json is served from an external location
          */
+        /**
+         * Get if the stats.json file should be retrieved from an external service
+         * or through the classpath.
+         *
+         * @return true if stats.json is served from an external location
+         */
+
 //        default boolean isStatsExternal() {
 //            return getBooleanProperty(Constants.EXTERNAL_STATS_FILE, false);
 //        }
