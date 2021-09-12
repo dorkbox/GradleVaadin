@@ -161,13 +161,11 @@ class JsonPackageTools {
 
         fun relativize(sourceFile: File, targetFile: File): String {
             // the regex is to make sure that the '/' is properly escaped in the file (otherwise it's interpreted incorrectly by webpack)
+            val replace = targetFile.toRelativeString(sourceFile).replace(regex, "/")
 //            println("Relativize:")
 //            println("\t$sourceFile")
 //            println("\t$targetFile")
-
-
-            val replace = targetFile.toRelativeString(sourceFile).replace(regex, "/")
-            println("\t$replace")
+//            println("\t$replace")
             return replace
         }
 
@@ -175,15 +173,17 @@ class JsonPackageTools {
             val relative = relativize(fileSource, fileTarget)
 
             if (getHash(fileSource) != getHash(fileTarget)) {
-                val max = 20
-                var count = 0
-                while (!fileTarget.delete() && count++ < max) {
-                    // sometimes the file is locked, so we should wait
-                    Thread.sleep(500L)
-                }
+                if (fileTarget.exists()) {
+                    val max = 20
+                    var count = 0
+                    while (!fileTarget.delete() && count++ < max) {
+                        // sometimes the file is locked, so we should wait
+                        Thread.sleep(500L)
+                    }
 
-                if (!fileTarget.delete()) {
-                    println("Unable to overwrite file: $fileTarget")
+                    if (!fileTarget.delete()) {
+                        println("Unable to overwrite file: $fileTarget")
+                    }
                 }
 
                 val canRead = fileSource.copyTo(fileTarget, true).canRead()
