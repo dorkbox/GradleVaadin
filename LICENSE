@@ -19,12 +19,6 @@
        Copyright 2021
          Luke Hutchison
 
-     - Vaadin - An open platform for building modern web apps for Java back ends
-       [The Apache Software License, Version 2.0]
-       https://github.com/vaadin/
-       Copyright 2021
-         Vaadin Ltd.
-
      - VaadinUndertow - Vaadin support for the Undertow web server
        [The Apache Software License, Version 2.0]
        https://git.dorkbox.com/dorkbox/VaadinUndertow

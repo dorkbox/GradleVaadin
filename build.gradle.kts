@@ -44,9 +44,13 @@ object Extras {
     val buildDate = Instant.now().toString()
 
     const val coroutineVer = "1.4.3"
-    const val vaadinVer = "14.4.8"
-    const val mavenVaadinGradleVer = "14.0" // this must match what is in VaadinConfig
     const val undertowVer = "2.2.10.Final"
+
+    // These MUST be in lock-step, otherwise horrific errors can occur.
+    const val vaadinVer = "14.4.8"
+    const val vaadinFlowVer = "2.4.6"
+    const val mavenVaadinGradleVer = "14.0" // this must match what is in VaadinConfig
+
 }
 
 ///////////////////////////////
@@ -73,7 +77,8 @@ dependencies {
     // Uber-fast, ultra-lightweight Java classpath and module path scanner
     implementation("io.github.classgraph:classgraph:4.8.116")
 
-    implementation("com.vaadin:vaadin:${Extras.vaadinVer}")
+    //  implementation("com.vaadin:vaadin:${Extras.vaadinVer}") // NOTE: uncomment for testing ONLY
+    implementation("com.vaadin:flow-server:${Extras.vaadinFlowVer}")
 
 
     implementation("com.dorkbox:VaadinUndertow:${Extras.mavenVaadinGradleVer}") // this must match what is in VaadinConfig
