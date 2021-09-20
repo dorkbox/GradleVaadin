@@ -124,7 +124,7 @@ class Vaadin : Plugin<Project> {
 
         project.dependencies.apply {
             add("implementation", "com.vaadin:vaadin:${VaadinConfig.VAADIN_VERSION}")
-            add("implementation", "com.dorkbox:VaadinUndertow:0.1")
+            add("implementation", "com.dorkbox:VaadinUndertow:${VaadinConfig.MAVEN_VAADIN_GRADLE_VERSION}")
         }
 
         // NOTE: NPM will ALWAYS install packages to the "node_modules" directory that is a sibling to the packages.json directory!

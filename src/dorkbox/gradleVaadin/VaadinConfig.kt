@@ -28,6 +28,7 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
         // so tests must be run to make sure our api is compatible with this release
         const val VAADIN_VERSION = "14.4.8"
         const val DEFAULT_NPM_VERSION = "6.14.10"
+        const val MAVEN_VAADIN_GRADLE_VERSION = "0.1"
 
         const val NAME = "node"
 
