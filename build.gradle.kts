@@ -45,7 +45,7 @@ object Extras {
 
     const val coroutineVer = "1.4.3"
     const val vaadinVer = "14.4.8"
-    const val mavenVaadinGradleVer = "0.1" // this must match what is in VaadinConfig
+    const val mavenVaadinGradleVer = "14.0" // this must match what is in VaadinConfig
     const val undertowVer = "2.2.10.Final"
 }
 

@@ -42,11 +42,11 @@
            [The Apache Software License, Version 2.0]
            https://github.com/spring-projects/spring-boot/tree/main/spring-boot-project/spring-boot/src/main/java/org/springframework/boot/web/embedded/undertow
 
-         -  - Unconventional Java code for building web servers / services without a framework
+         - StubbornJava - Unconventional Java code for building web servers / services without a framework
            [MIT License]
            https://github.com/StubbornJava/StubbornJava
            Copyright 2017
-             StubbornJava
+             Bill O'Neil
 
          - Kotlin - 
            [The Apache Software License, Version 2.0]
