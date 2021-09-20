@@ -16,7 +16,7 @@ object TaskUpdateWebpack_ {
 
         // If we have an old config file we remove it and create the new one
         // using the webpack.generated.js
-        val configFile = nodeInfo.webPackFile
+        val configFile = nodeInfo.origWebPackFile
 
         if (configFile.exists()) {
             if (!FrontendUtils.isWebpackConfigFile(configFile)) {

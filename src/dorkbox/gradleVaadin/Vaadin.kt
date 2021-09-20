@@ -27,7 +27,6 @@ import dorkbox.gradleVaadin.node.variant.VariantComputer
 import dorkbox.gradleVaadin.node.yarn.task.YarnInstallTask
 import dorkbox.gradleVaadin.node.yarn.task.YarnSetupTask
 import dorkbox.gradleVaadin.node.yarn.task.YarnTask
-import dorkbox.vaadin.compiler.VaadinCompile
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -39,7 +38,7 @@ import java.io.File
 /**
  * For managing Vaadin gradle tasks
  */
-@Suppress("UnstableApiUsage", "unused")
+@Suppress("UnstableApiUsage", "unused", "SameParameterValue")
 class Vaadin : Plugin<Project> {
     companion object {
         const val NODE_GROUP = "Node"
@@ -85,6 +84,7 @@ class Vaadin : Plugin<Project> {
     private lateinit var config: VaadinConfig
 
 
+    @Suppress("ObjectLiteralToLambda")
     private fun newTask(dependencyTask: Task,
                         taskName: String,
                         description: String,
@@ -99,10 +99,11 @@ class Vaadin : Plugin<Project> {
 
             inputs(this.inputs)
 
-            doLast {
-                val vaadinCompiler: VaadinCompiler = VaadinConfig[project].vaadinCompiler
-                action(this, vaadinCompiler)
-            }
+            doLast(object: Action<Task> {
+                override fun execute(task: Task) {
+                    action(task, VaadinConfig[project].vaadinCompiler)
+                }
+            })
         }
     }
 
@@ -114,9 +115,6 @@ class Vaadin : Plugin<Project> {
 
         // Create the Plugin extension object (for users to configure publishing).
         config = VaadinConfig.create(project)
-
-        // have to create the task
-        project.tasks.create("prepare_jar_libraries", PrepJarsTask::class.java)
 
         project.repositories.apply {
             maven { it.setUrl("https://maven.vaadin.com/vaadin-addons") } // Vaadin Addons
@@ -192,7 +190,7 @@ class Vaadin : Plugin<Project> {
 
         val createMissingPackageJson = newTask(generateWebComponents, "createMissingPackageJson", "Prepare Vaadin frontend")
         { vaadinCompiler ->
-            VaadinCompile.print()
+//            VaadinCompile.print()
             vaadinCompiler.createMissingPackageJson()
         }
 
@@ -210,13 +208,6 @@ class Vaadin : Plugin<Project> {
          *
          * @return true if stats.json is served from an external location
          */
-        /**
-         * Get if the stats.json file should be retrieved from an external service
-         * or through the classpath.
-         *
-         * @return true if stats.json is served from an external location
-         */
-
 //        default boolean isStatsExternal() {
 //            return getBooleanProperty(Constants.EXTERNAL_STATS_FILE, false);
 //        }

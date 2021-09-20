@@ -139,16 +139,25 @@ internal class VaadinCompiler(val project: Project) {
         buildInfo.put(InitParameters.SERVLET_PARAMETER_COMPATIBILITY_MODE, false)
         buildInfo.put(InitParameters.SERVLET_PARAMETER_PRODUCTION_MODE, productionMode)
         buildInfo.put("polymer.version", polymerVersion)
-        buildInfo.put(InitParameters.SERVLET_PARAMETER_ENABLE_PNPM, config.enablePnpm) // matches vaadin application launcher
 
-        // used for defining folder paths for dev server
+        // matches custom vaadin application launcher
+        buildInfo.put(InitParameters.SERVLET_PARAMETER_ENABLE_PNPM, config.enablePnpm)
+        buildInfo.put(InitParameters.SERVLET_PARAMETER_ENABLE_DEV_SERVER, !productionMode)
+
         if (!productionMode) {
+            // used for defining folder paths for dev server
+
             buildInfo.put(Constants.NPM_TOKEN, buildDir.absolutePath)
             buildInfo.put(Constants.GENERATED_TOKEN, nodeInfo.frontendGeneratedDir.absolutePath)
             buildInfo.put(Constants.FRONTEND_TOKEN, nodeInfo.frontendDir.absolutePath)
+        } else {
+            // only applicable when in production mode
+
+            buildInfo.put(dorkbox.vaadin.util.VaadinConfig.EXTRACT_JAR, config.extractJar) // matches vaadin application launcher
+            buildInfo.put(dorkbox.vaadin.util.VaadinConfig.EXTRACT_JAR_OVERWRITE, config.extractJarOverwrite) // matches vaadin application launcher
         }
 
-        buildInfo.put(InitParameters.SERVLET_PARAMETER_ENABLE_DEV_SERVER, !productionMode)
+
 
         JsonPackageTools.writeJson(nodeInfo.tokenFile, buildInfo)
 

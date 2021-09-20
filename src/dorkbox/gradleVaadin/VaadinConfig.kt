@@ -77,15 +77,35 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
         set(value) { buildDir_.set(value)}
 
 
-    // the gradle property model is retarded, but sadly the "right way to do it"
     @get:Input
     protected var debug_ = project.objects.property(Boolean::class.java).convention(false)
     var debug: Boolean
     get() { return debug_.get() }
     set(value) { debug_.set(value)}
 
+    /**
+     * Used by the custom vaadin application launcher.
+     * When building a production jar, to extract the contents of the jar or not
+     * Usually -- for performance reasons, you want it to "self extract" the jar. For rapid testing, you don't always want this.
+     */
+    @get:Input
+    protected var extractJar_ = project.objects.property(Boolean::class.java).convention(true)
+    var extractJar: Boolean
+    get() { return extractJar_.get() }
+    set(value) { extractJar_.set(value)}
 
-    // the gradle property model is retarded,`` but sadly the "right way to do it"
+    /**
+     * Used by the custom vaadin application launcher.
+     * When extracting contents from a jar, to overwrite the destination file or not
+     * Usually -- for performance reasons, you want it to "self extract" the jar. For rapid testing, you don't always want this.
+     */
+    @get:Input
+    protected var extractJarOverwrite_ = project.objects.property(Boolean::class.java).convention(false)
+    var extractJarOverwrite: Boolean
+    get() { return extractJarOverwrite_.get() }
+    set(value) { extractJarOverwrite_.set(value)}
+
+
     @get:Input
     protected var enablePnpm_ = project.objects.property(Boolean::class.java).convention(false)
     var enablePnpm: Boolean

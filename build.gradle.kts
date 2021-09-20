@@ -18,17 +18,15 @@ import java.time.Instant
 gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS_FULL   // always show the stacktrace!
 
 plugins {
-    java
     `java-gradle-plugin`
-    `kotlin-dsl`
 
     id("com.gradle.plugin-publish") version "0.14.0"
 
     id("com.dorkbox.Licensing") version "2.9.1"
     id("com.dorkbox.VersionUpdate") version "2.4"
-    id("com.dorkbox.GradleUtils") version "2.9"
+    id("com.dorkbox.GradleUtils") version "2.11"
 
-    kotlin("jvm") version "1.4.31"
+    kotlin("jvm") version "1.5.21"
 }
 
 object Extras {
@@ -47,7 +45,7 @@ object Extras {
 
     const val coroutineVer = "1.4.3"
     const val vaadinVer = "14.4.8"
-    const val undertowVer = "2.2.9.Final"
+    const val undertowVer = "2.2.10.Final"
 }
 
 ///////////////////////////////
@@ -71,19 +69,13 @@ dependencies {
 
     implementation("org.jetbrains.kotlin:kotlin-reflect")
 
-    // setup node.js
-    // https://github.com/node-gradle/gradle-node-plugin
-//    implementation("com.github.node-gradle:gradle-node-plugin:3.1.0")
-
     // Uber-fast, ultra-lightweight Java classpath and module path scanner
-    implementation("io.github.classgraph:classgraph:4.8.110")
+    implementation("io.github.classgraph:classgraph:4.8.116")
 
-    // for parsing JSON
-//    implementation("org.json:json:20210307")
-
-//    implementation("com.vaadin:flow-server:2.1.5")
     implementation("com.vaadin:vaadin:${Extras.vaadinVer}")
 
+
+    implementation("com.dorkbox:VaadinUndertow:0.1")
     implementation("com.dorkbox:Executor:3.3.2")
     implementation("com.dorkbox:Version:2.4")
 }
