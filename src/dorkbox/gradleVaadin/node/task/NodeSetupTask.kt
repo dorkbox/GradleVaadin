@@ -18,9 +18,11 @@ import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.*
 import java.io.File
+import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Paths
 import javax.inject.Inject
+
 
 abstract class NodeSetupTask : DefaultTask() {
     companion object {
@@ -41,8 +43,9 @@ abstract class NodeSetupTask : DefaultTask() {
     @get:InputFile
     val nodeArchiveFile = objects.fileProperty()
 
-    @get:OutputDirectory
-    val nodeDir = vaadinConfig.nodeJsDir
+    // This crashes on linux! SUPER ODD...
+//    @get:OutputDirectory
+//    val nodeDir = vaadinConfig.nodeJsDir
 
     @get:Internal
     val projectHelper = ProjectApiHelper.newInstance(project)
@@ -61,6 +64,9 @@ abstract class NodeSetupTask : DefaultTask() {
     // if there is a package.json file ALREADY here, we have to rename it so we can install pnpm.
     private val projectDir = vaadinConfig.buildDir
     private val pnpmVersion = vaadinConfig.pnpmVersion
+
+    // can't have Path objects, it won't work
+    private val symbolicLinkOrigs = mutableListOf<Pair<String, File>>()
 
     init {
         group = Vaadin.NODE_GROUP
@@ -97,6 +103,7 @@ abstract class NodeSetupTask : DefaultTask() {
             deleteExistingNode()
             unpackNodeArchive()
             renameDirectory()
+            fixSymbolicLinks()
             setExecutableFlag()
             installNodeOK = validateNodeInstall()
 
@@ -128,20 +135,25 @@ abstract class NodeSetupTask : DefaultTask() {
     }
 
     private fun deleteExistingNode() {
-        println("\t Deleting: ${nodeDir.get()}")
+        println("\t Deleting: ${vaadinConfig.nodeJsDir.get()}")
 
         projectHelper.delete {
             // only delete the nodejs dir, NOT the parent dir!
-            it.delete(nodeDir)
+            it.delete(vaadinConfig.nodeJsDir)
         }
     }
 
     private fun unpackNodeArchive() {
         val archiveFile = nodeArchiveFile.get().asFile
-        val nodeDirProvider = vaadinConfig.nodeJsDir
-        val nodeBinDirProvider = VariantComputer.computeNodeBinDir(nodeDirProvider)
+        val targetDirectory = vaadinConfig.buildDir
 
-        println("\t   Unpack: ${archiveFile}")
+        println("\t   Unpack: $archiveFile")
+        println("\t   Target: $targetDirectory")
+
+        // if we already exist (because somethign screwed up), delete it!
+        if (targetDirectory.exists()) {
+            targetDirectory.deleteRecursively()
+        }
 
         if (archiveFile.name.endsWith("zip")) {
             projectHelper.copy {
@@ -152,20 +164,6 @@ abstract class NodeSetupTask : DefaultTask() {
             projectHelper.copy {
                 it.from(projectHelper.tarTree(archiveFile))
                 it.into(vaadinConfig.buildDir)
-            }
-
-            // Fix broken symlink
-            val nodeBinDirPath = nodeBinDirProvider.get().asFile.toPath()
-            val npm = nodeBinDirPath.resolve("npm")
-            val npmScriptFile = VariantComputer.computeNpmScriptFile(nodeDirProvider, "npm")
-            if (Files.deleteIfExists(npm)) {
-                Files.createSymbolicLink(npm, nodeBinDirPath.relativize(Paths.get(npmScriptFile)))
-            }
-
-            val npx = nodeBinDirPath.resolve("npx")
-            val npxScriptFile = VariantComputer.computeNpmScriptFile(nodeDirProvider, "npx")
-            if (Files.deleteIfExists(npx)) {
-                Files.createSymbolicLink(npx, nodeBinDirPath.relativize(Paths.get(npxScriptFile)))
             }
         }
     }
@@ -183,7 +181,26 @@ abstract class NodeSetupTask : DefaultTask() {
         println("\t Renaming: $extractedNode")
         println("\t       to: $targetNode")
 
-        extractedNode.renameTo(targetNode)
+        if (!extractedNode.renameTo(targetNode)) {
+            throw IOException("Unable to rename directory! Aborting.")
+        }
+    }
+
+    private fun fixSymbolicLinks() {
+        val nodeDirProvider = vaadinConfig.nodeJsDir
+        val nodeBinDirProvider = VariantComputer.computeNodeBinDir(nodeDirProvider)
+
+        val nodeBinDirPath = nodeBinDirProvider.get().asFile.toPath()
+        val npm = nodeBinDirPath.resolve("npm")
+        val npmScriptFile = VariantComputer.computeNpmScriptFile(nodeDirProvider, "npm")
+
+        Files.deleteIfExists(npm)
+        Files.createSymbolicLink(npm, Paths.get(npmScriptFile))
+
+        val npx = nodeBinDirPath.resolve("npx")
+        val npxScriptFile = VariantComputer.computeNpmScriptFile(nodeDirProvider, "npx")
+        Files.deleteIfExists(npx)
+        Files.createSymbolicLink(npx, Paths.get(npxScriptFile))
     }
 
 
@@ -197,7 +214,8 @@ abstract class NodeSetupTask : DefaultTask() {
     }
 
     private fun validateNodeInstall(silent: Boolean = false): Boolean {
-        if (!nodeDir.get().asFile.exists() || !nodeExec.exists()) {
+        if (!vaadinConfig.nodeJsDir.get().asFile.exists() || !nodeExec.exists()) {
+            println("Doesn't exist ${vaadinConfig.nodeJsDir.get().asFile}  ${nodeExec}")
             return false
         }
 
@@ -217,9 +235,21 @@ abstract class NodeSetupTask : DefaultTask() {
                 return false
             }
 
-            detectedVersion = Executor.run(npmExec.absolutePath, "--version").let {
-                PlatformHelper.parseVersionString(it)
+            // This is a tad-bit different than normally expected, but linux has path issues!
+            val exe = Executor()
+                .executable(npmExec)
+                .workingDirectory(npmExec.parent)
+                .enableRead()
+                .executable(nodeExec)
+                .addArg(npmExec.absolutePath, "--version", "--scripts-prepend-node-path")
+
+            if (!silent) {
+                Util.execDebug(exe)
             }
+
+            val result = exe.startBlocking()
+            val output = result.output.utf8()
+            detectedVersion = PlatformHelper.parseVersionString(output)
             parsedVersion = Version.from(detectedVersion)
             detectedNpmVersion = detectedVersion
 
@@ -254,7 +284,7 @@ abstract class NodeSetupTask : DefaultTask() {
             .environment("ADBLOCK", "1")
             .workingDirectory(projectDir)
             .enableRead()
-            .addArg(listOf("list", "pnpm", "--depth=0"))
+            .addArg("list", "pnpm", "--depth=0")
 
         if (!silent) {
             Util.execDebug(exe)
@@ -330,9 +360,7 @@ abstract class NodeSetupTask : DefaultTask() {
                 .executable(npmExec)
                 .environment("ADBLOCK", "1")
                 .workingDirectory(projectDir)
-                .addArg(listOf(
-                    "--shamefully-hoist=true",
-                    "install", "pnpm@$pnpmVersion"))
+                .addArg("--shamefully-hoist=true", "install", "pnpm@$pnpmVersion")
 
             if (debug) {
                 exe.enableRead()
