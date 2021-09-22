@@ -187,20 +187,22 @@ abstract class NodeSetupTask : DefaultTask() {
     }
 
     private fun fixSymbolicLinks() {
-        val nodeDirProvider = vaadinConfig.nodeJsDir
-        val nodeBinDirProvider = VariantComputer.computeNodeBinDir(nodeDirProvider)
+        if (!PlatformHelper.INSTANCE.isWindows) {
+            val nodeDirProvider = vaadinConfig.nodeJsDir
+            val nodeBinDirProvider = VariantComputer.computeNodeBinDir(nodeDirProvider)
 
-        val nodeBinDirPath = nodeBinDirProvider.get().asFile.toPath()
-        val npm = nodeBinDirPath.resolve("npm")
-        val npmScriptFile = VariantComputer.computeNpmScriptFile(nodeDirProvider, "npm")
+            val nodeBinDirPath = nodeBinDirProvider.get().asFile.toPath()
+            val npm = nodeBinDirPath.resolve("npm")
+            val npmScriptFile = VariantComputer.computeNpmScriptFile(nodeDirProvider, "npm")
 
-        Files.deleteIfExists(npm)
-        Files.createSymbolicLink(npm, Paths.get(npmScriptFile))
+            Files.deleteIfExists(npm)
+            Files.createSymbolicLink(npm, Paths.get(npmScriptFile))
 
-        val npx = nodeBinDirPath.resolve("npx")
-        val npxScriptFile = VariantComputer.computeNpmScriptFile(nodeDirProvider, "npx")
-        Files.deleteIfExists(npx)
-        Files.createSymbolicLink(npx, Paths.get(npxScriptFile))
+            val npx = nodeBinDirPath.resolve("npx")
+            val npxScriptFile = VariantComputer.computeNpmScriptFile(nodeDirProvider, "npx")
+            Files.deleteIfExists(npx)
+            Files.createSymbolicLink(npx, Paths.get(npxScriptFile))
+        }
     }
 
 
