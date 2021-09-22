@@ -188,6 +188,8 @@ abstract class NodeSetupTask : DefaultTask() {
 
     private fun fixSymbolicLinks() {
         if (!PlatformHelper.INSTANCE.isWindows) {
+            // gradle does not support symbolic links!
+            // https://github.com/gradle/gradle/issues/10676
             val nodeDirProvider = vaadinConfig.nodeJsDir
             val nodeBinDirProvider = VariantComputer.computeNodeBinDir(nodeDirProvider)
 
@@ -217,7 +219,7 @@ abstract class NodeSetupTask : DefaultTask() {
 
     private fun validateNodeInstall(silent: Boolean = false): Boolean {
         if (!vaadinConfig.nodeJsDir.get().asFile.exists() || !nodeExec.exists()) {
-            println("Doesn't exist ${vaadinConfig.nodeJsDir.get().asFile}  ${nodeExec}")
+//            println("Doesn't exist ${vaadinConfig.nodeJsDir.get().asFile}  ${nodeExec}")
             return false
         }
 
@@ -237,24 +239,20 @@ abstract class NodeSetupTask : DefaultTask() {
                 return false
             }
 
-            // This is a tad-bit different than normally expected, but linux has path issues!
-            val exe = Executor()
-                .executable(npmExec)
-                .workingDirectory(npmExec.parent)
-                .enableRead()
-                .executable(nodeExec)
-                .addArg(npmExec.absolutePath, "--version", "--scripts-prepend-node-path")
 
-            if (!silent) {
-                Util.execDebug(exe)
+            detectedVersion = if (!PlatformHelper.INSTANCE.isWindows) {
+                // This is a tad-bit different than normally expected, but linux has path issues! (and the same syntax is not supported on windows)
+                Executor.run(nodeExec.absolutePath, npmExec.absolutePath, "--version", "--scripts-prepend-node-path").let {
+                    PlatformHelper.parseVersionString(it)
+                }
+            } else {
+                Executor.run(npmExec.absolutePath, "--version").let {
+                    PlatformHelper.parseVersionString(it)
+                }
             }
 
-            val result = exe.startBlocking()
-            val output = result.output.utf8()
-            detectedVersion = PlatformHelper.parseVersionString(output)
             parsedVersion = Version.from(detectedVersion)
             detectedNpmVersion = detectedVersion
-
 
             @Suppress("DEPRECATION")
             val SUPPORTED_NPM_VERSION = Version.from(Constants.SUPPORTED_NPM_MAJOR_VERSION, Constants.SUPPORTED_NPM_MINOR_VERSION)
