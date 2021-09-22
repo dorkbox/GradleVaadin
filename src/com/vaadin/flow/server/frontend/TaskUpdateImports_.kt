@@ -32,8 +32,8 @@ object TaskUpdateImports_ {
 
         val task = TaskUpdateImports(
             customClassFinder,     // a reusable class finder
-            dependencyScanner,  // a reusable frontend dependencies scanner
-            fallbackDepScanner,              // fallback scanner provider, not {@code null}
+            dependencyScanner,     // a reusable frontend dependencies scanner
+            fallbackDepScanner,    // fallback scanner provider, not {@code null}
             nodeInfo.buildDir,     // folder with the `package.json` file
             nodeInfo.generatedFilesDir, // folder where flow generated files will be placed.
             nodeInfo.frontendDir,       // a directory with project's frontend files
