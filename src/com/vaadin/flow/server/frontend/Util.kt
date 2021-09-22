@@ -37,6 +37,18 @@ object Util {
         task.execute()
     }
 
+    fun addPath(environment: MutableMap<String, String?>, pathToInject: String) {
+        // Take care of Windows environments that may contain "Path" OR "PATH" - both existing
+        // possibly (but not in parallel as of now)
+        if (environment["Path"] != null) {
+            environment["Path"] = pathToInject + File.pathSeparator + environment["Path"]
+        } else if (environment["PATH"] != null) {
+            environment["PATH"] = pathToInject + File.pathSeparator + environment["PATH"]
+        } else {
+            environment["PATH"] = pathToInject
+        }
+    }
+
     fun execDebug(ex: Executor) {
         println("\t\tExec: ${ex.getExecutable()}")
         println("\t\tWorking Dir: ${ex.getWorkingDirectory()}")

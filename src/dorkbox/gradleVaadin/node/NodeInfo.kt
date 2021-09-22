@@ -2,7 +2,9 @@ package dorkbox.gradleVaadin.node
 
 import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.frontend.FrontendUtils
+import dorkbox.gradleVaadin.JsonPackageTools
 import dorkbox.gradleVaadin.VaadinConfig
+import dorkbox.gradleVaadin.node.util.PlatformHelper
 import dorkbox.gradleVaadin.node.variant.VariantComputer
 import org.gradle.api.Project
 
@@ -52,6 +54,16 @@ class NodeInfo(val project: Project) {
 
 
     val frontendDir = sourceDir.resolve(FrontendUtils.FRONTEND)
+
+    // There are SUBTLE differences between windows and not-windows with webpack!
+    // NOTE: this does NOT make sense!
+    //  windows: '..\frontend'
+    //    linux: 'frontend'
+    val frontendDirWebPack = if (PlatformHelper.INSTANCE.isWindows)
+        JsonPackageTools.relativize(buildDir, sourceDir.resolve(FrontendUtils.FRONTEND))
+    else
+        FrontendUtils.FRONTEND
+
 
 
     val flowJsonPackageFile = buildDir.resolve(config.flowDirectory).resolve(Constants.PACKAGE_JSON)

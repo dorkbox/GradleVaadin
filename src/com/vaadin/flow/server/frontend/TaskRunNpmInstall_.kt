@@ -6,6 +6,7 @@ import com.vaadin.flow.server.frontend.scanner.ClassFinder
 import dorkbox.executor.Executor
 import dorkbox.gradleVaadin.VaadinConfig
 import dorkbox.gradleVaadin.node.NodeInfo
+import dorkbox.gradleVaadin.node.util.PlatformHelper
 import elemental.json.Json
 import elemental.json.JsonObject
 import elemental.json.impl.JsonUtil
@@ -149,14 +150,19 @@ object TaskRunNpmInstall_ {
 
         val ex = Executor()
 
-        ex.executable( nodeInfo.nodeBinExec)
+        val exe = File(nodeInfo.nodeBinExec)
+        ex.executable(exe)
         ex.workingDirectory(buildDir)
 
         ex.environment["ADBLOCK"] = "1"
         ex.environment["NO_UPDATE_NOTIFIER"] = "1"
+        Util.addPath(ex.environment, exe.parent)
 
         val scriptFile = if (enablePnpm) nodeInfo.pnpmScript.absolutePath else nodeInfo.npmScript
-        ex.addArg(scriptFile, "install", "--scripts-prepend-node-path")
+        ex.addArg(scriptFile, "install")
+        if (!PlatformHelper.INSTANCE.isWindows) {
+            ex.addArg("--scripts-prepend-node-path")
+        }
 
         val debug = VaadinConfig[nodeInfo.project].debug
 

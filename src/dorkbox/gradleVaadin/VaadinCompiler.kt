@@ -65,7 +65,7 @@ internal class VaadinCompiler(val project: Project) {
 
     val frontendDependencies by lazy {
         // this cannot be refactored out! (as tempting as that might be...)
-        FrontendDependenciesScanner.FrontendDependenciesScannerFactory().createScanner(false, customClassFinder, true)
+        FrontendDependenciesScanner.FrontendDependenciesScannerFactory().createScanner(true, customClassFinder, true)
     }
     // SEE: com.vaadin.flow.server.startup.DevModeInitializer
 
@@ -198,22 +198,23 @@ internal class VaadinCompiler(val project: Project) {
 
         val ex = Executor()
 
-        ex.executable(nodeInfo.nodeBinExec)
+        val nodeBinExec = File(nodeInfo.nodeBinExec)
+        ex.executable(nodeBinExec)
         ex.workingDirectory(nodeInfo.buildDir)
 
+        // there are path issues on linux. we must add the path!
         ex.environment["ADBLOCK"] = "1"
         ex.environment["NO_UPDATE_NOTIFIER"] = "1"
+        Util.addPath(ex.environment, nodeBinExec.parent)
 
         // --scripts-prepend-node-path is added to fix path issues
         ex.addArg(webPackExecutableFile.path, "--config", nodeInfo.webPackProdFile.path,
-            "--scripts-prepend-node-path"
+//            "--scripts-prepend-node-path"
         )
 
         if (!debug) {
             ex.addArg("--silent")
-        }
-
-        if (debug) {
+        } else {
             ex.enableRead()
             Util.execDebug(ex)
         }
