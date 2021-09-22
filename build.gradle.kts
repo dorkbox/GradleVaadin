@@ -33,7 +33,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to build Vaadin for use by the VaadinUndertow library"
     const val group = "com.dorkbox"
-    const val version = "14.0"
+    const val version = "14.1"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
@@ -79,7 +79,6 @@ dependencies {
 
     //  implementation("com.vaadin:vaadin:${Extras.vaadinVer}") // NOTE: uncomment for testing ONLY
     implementation("com.vaadin:flow-server:${Extras.vaadinFlowVer}")
-
 
     implementation("com.dorkbox:VaadinUndertow:${Extras.mavenVaadinGradleVer}") // this must match what is in VaadinConfig
     implementation("com.dorkbox:Executor:3.3.2")
