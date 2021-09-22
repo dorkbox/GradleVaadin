@@ -22,7 +22,7 @@ plugins {
 
     id("com.gradle.plugin-publish") version "0.14.0"
 
-    id("com.dorkbox.Licensing") version "2.9.1"
+    id("com.dorkbox.Licensing") version "2.10"
     id("com.dorkbox.VersionUpdate") version "2.4"
     id("com.dorkbox.GradleUtils") version "2.13"
 
