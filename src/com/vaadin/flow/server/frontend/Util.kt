@@ -23,20 +23,6 @@ object Util {
     // a new hash to the code repository.
     val INSTALL_HASH = ".vaadin/vaadin.json"
 
-    /**
-     * Creates the <code>package.json</code> if missing.
-     *
-     * @since 2.0
-     */
-    fun createMissingPackageJson(npmFolder: File, generatedPath: File) {
-        val task = object: TaskCreatePackageJson(npmFolder, generatedPath) {
-            override fun log(): Logger {
-                return logger
-            }
-        }
-        task.execute()
-    }
-
     fun addPath(environment: MutableMap<String, String?>, pathToInject: String) {
         // Take care of Windows environments that may contain "Path" OR "PATH" - both existing
         // possibly (but not in parallel as of now)

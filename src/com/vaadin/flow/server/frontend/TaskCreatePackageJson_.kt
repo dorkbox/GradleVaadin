@@ -3,6 +3,7 @@ package com.vaadin.flow.server.frontend
 import dorkbox.gradleVaadin.JsonPackageTools
 import dorkbox.gradleVaadin.node.NodeInfo
 import org.jetbrains.kotlin.gradle.internal.ensureParentDirsCreated
+import org.slf4j.Logger
 
 /**
  * flow-server-2.4.6
@@ -29,10 +30,17 @@ object TaskCreatePackageJson_ {
         JsonPackageTools.mergeJson(origJson, genJson)
         Util.disableVaadinStatistics(genJson)
 
+
         JsonPackageTools.writeJson(nodeInfo.buildDirJsonPackageFile, genJson)
 
 
         val locationOfGeneratedJsonForFlowDependencies = nodeInfo.buildDir.resolve("frontend")
-        Util.createMissingPackageJson(nodeInfo.buildDir, locationOfGeneratedJsonForFlowDependencies)
+
+        val task = object: TaskCreatePackageJson(nodeInfo.buildDir, locationOfGeneratedJsonForFlowDependencies) {
+            override fun log(): Logger {
+                return Util.logger
+            }
+        }
+        task.execute()
     }
 }
