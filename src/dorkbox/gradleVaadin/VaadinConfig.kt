@@ -26,6 +26,7 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
     companion object {
         // we are locked to this version number! any change to this must reflect changes to our API, and how we access vaadin
         // so tests must be run to make sure our api is compatible with this release
+        // https://vaadin.com/docs/v14/guide/install/frontend
         const val VAADIN_VERSION = "14.4.8"
         const val DEFAULT_NPM_VERSION = "6.14.10"
 
