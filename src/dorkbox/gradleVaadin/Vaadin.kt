@@ -33,6 +33,7 @@ import org.gradle.api.Project
 import org.gradle.api.Task
 import org.gradle.api.execution.TaskExecutionGraph
 import org.gradle.api.tasks.TaskInputs
+import org.gradle.jvm.tasks.Jar
 import java.io.File
 
 /**
@@ -150,13 +151,17 @@ class Vaadin : Plugin<Project> {
 
                 if (hasVaadinTask) {
                     val jarTasks = allTasks.filter { it.name.endsWith("jar")}
+
                     if (jarTasks.isNotEmpty()) {
+                        project.tasks.withType(Jar::class.java) {
+                            // we ALWAYS want to make sure that this task runs. If *something* is cached, then there jar file output will be incomplete.
+                            it.outputs.upToDateWhen { false }
+                        }
+
                         println("\tDisabling the gradle cache for:")
                     }
                     jarTasks.forEach {
                         println("\t\t${it.project.name}:${it.name}")
-                        // we ALWAYS want to make sure that this task runs. If *something* is cached, then there jar file output will be incomplete.
-                        it.outputs.upToDateWhen { false }
                     }
                 }
             }
