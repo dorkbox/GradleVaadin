@@ -4,12 +4,12 @@ import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.frontend.FrontendUtils
 import com.vaadin.flow.server.frontend.Util
 import dorkbox.executor.Executor
+import dorkbox.executor.processResults.SyncProcessResult
 import dorkbox.gradleVaadin.JsonPackageTools
 import dorkbox.gradleVaadin.VaadinConfig
 import dorkbox.gradleVaadin.node.util.PlatformHelper
 import dorkbox.gradleVaadin.node.variant.VariantComputer
 import org.gradle.api.Project
-import java.io.File
 
 /**
  *
@@ -65,8 +65,8 @@ class NodeInfo(val project: Project) {
     val frontendDirWebPack = if (PlatformHelper.INSTANCE.isWindows)
         JsonPackageTools.relativize(buildDir, sourceDir.resolve(FrontendUtils.FRONTEND))
     else
-        JsonPackageTools.relativize(buildDir, sourceDir.resolve(FrontendUtils.FRONTEND))
-//        FrontendUtils.FRONTEND
+//        JsonPackageTools.relativize(buildDir, sourceDir.resolve(FrontendUtils.FRONTEND))
+        FrontendUtils.FRONTEND
 
 
 
@@ -98,19 +98,60 @@ class NodeInfo(val project: Project) {
 
     val pnpmScript = VariantComputer.computePnpmScriptFile(config)
 
-    fun nodeExe(): Executor {
-        return Executor()
+    fun nodeExe(config: Executor.() -> Unit): SyncProcessResult {
+        val exe = Executor()
             .executable(nodeBinExec)
 //            .workingDirectory(File(nodeBinExec).parent)
             .environment("ADBLOCK", "1")
-            .also {
-                it.useSystemEnvironment()
-                Util.addPath(it.environment, nodeBinDirProvider.get().asFile.path)
-            }
+            .useSystemEnvironment()
+
+        Util.addPath(exe.environment, nodeBinDirProvider.get().asFile.path)
+
+        config(exe)
+
+        return exe.startBlocking()
     }
 
-    fun npmExe(): Executor {
-        return nodeExe()
+    fun nodeExeOutput(config: Executor.() -> Unit): String {
+        val exe = Executor()
+            .executable(nodeBinExec)
+//            .workingDirectory(File(nodeBinExec).parent)
+            .environment("ADBLOCK", "1")
+            .useSystemEnvironment()
+
+        Util.addPath(exe.environment, nodeBinDirProvider.get().asFile.path)
+
+        config(exe)
+
+        val result = exe.startBlocking()
+        return if (result.hasOutput) {
+            result.output.utf8()
+        } else {
+            ""
+        }
+    }
+
+    fun npmExe(config: Executor.() -> Unit): SyncProcessResult {
+        val exe = Executor()
+            .executable(nodeBinExec)
+            //            .workingDirectory(File(nodeBinExec).parent)
+            .environment("ADBLOCK", "1")
             .addArg(npmScript)
+            .useSystemEnvironment()
+
+            Util.addPath(exe.environment, nodeBinDirProvider.get().asFile.path)
+
+        config(exe)
+
+        return exe.startBlocking()
+    }
+
+    fun npmExeOutput(config: Executor.() -> Unit): String {
+        val result = npmExe(config)
+        return if (result.hasOutput) {
+            result.output.utf8()
+        } else {
+            ""
+        }
     }
 }

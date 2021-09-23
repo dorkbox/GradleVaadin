@@ -3,7 +3,6 @@ package dorkbox.gradleVaadin.node.task
 import com.dorkbox.version.Version
 import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.frontend.Util
-import dorkbox.executor.Executor
 import dorkbox.gradleVaadin.JsonPackageTools
 import dorkbox.gradleVaadin.Vaadin
 import dorkbox.gradleVaadin.VaadinConfig
@@ -256,16 +255,14 @@ abstract class NodeSetupTask : DefaultTask() {
         try {
             // gets the version of Node and NPM and compares them against the supported versions
 
+            var detectedVersion = nodeInfo.nodeExeOutput {
+                this.enableRead()
+                this.addArg("--version")
 
-            var exe = nodeInfo.nodeExe()
-                .enableRead()
-                .addArg("--version")
-
-            if (debug) {
-                Util.execDebug(exe)
+                if (debug) {
+                    Util.execDebug(this)
+                }
             }
-
-            var detectedVersion = exe.startBlocking().output.utf8()
 
             if (debug) {
                 println("\t\tNODE Detection: $detectedVersion")
@@ -283,15 +280,14 @@ abstract class NodeSetupTask : DefaultTask() {
                 return false
             }
 
-            exe = nodeInfo.npmExe()
-                .enableRead()
-                .addArg("--version")
+            detectedVersion = nodeInfo.npmExeOutput {
+                this.enableRead()
+                this.addArg("--version")
 
-            if (debug) {
-                Util.execDebug(exe)
+                if (debug) {
+                    Util.execDebug(this)
+                }
             }
-
-            detectedVersion = exe.startBlocking().output.utf8()
 
             if (debug) {
                 println("\t\tNPM Detection: $detectedVersion")
@@ -329,16 +325,16 @@ abstract class NodeSetupTask : DefaultTask() {
 
         println("PNP needs to be configured correctly!")
 
-        val exe = nodeInfo.npmExe()
-            .workingDirectory(projectDir)
-            .enableRead()
-            .addArg("list", "pnpm", "--depth=0")
+        val output = nodeInfo.npmExeOutput{
+            this.workingDirectory(projectDir)
+                .enableRead()
+                .addArg("list", "pnpm", "--depth=0")
 
-        if (!silent) {
-            Util.execDebug(exe)
+            if (!silent) {
+                Util.execDebug(this)
+            }
         }
 
-        val output = exe.startBlocking().output.utf8()
         val index = output.indexOf("pnpm@")
         if (index < 2) {
             return false
@@ -404,17 +400,17 @@ abstract class NodeSetupTask : DefaultTask() {
 
             // install pnpm locally using npm
 
-            val exe = nodeInfo.npmExe()
-                .workingDirectory(projectDir)
-                .addArg("--shamefully-hoist=true", "install", "pnpm@$pnpmVersion")
+            val result = nodeInfo.npmExe {
+                this.workingDirectory(projectDir)
+                    .addArg("--shamefully-hoist=true", "install", "pnpm@$pnpmVersion")
 //                .addArg("--scripts-prepend-node-path")
 
-            if (debug) {
-                exe.enableRead()
-                Util.execDebug(exe)
+                if (debug) {
+                    enableRead()
+                    Util.execDebug(this)
+                }
             }
 
-            val result = exe.startBlocking()
             if (debug) {
                 result.output.linesAsUtf8().forEach {
                     println("\t$it")

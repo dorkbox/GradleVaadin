@@ -3,10 +3,8 @@ package com.vaadin.flow.server.frontend
 import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.ExecutionFailedException
 import com.vaadin.flow.server.frontend.scanner.ClassFinder
-import dorkbox.executor.Executor
 import dorkbox.gradleVaadin.VaadinConfig
 import dorkbox.gradleVaadin.node.NodeInfo
-import dorkbox.gradleVaadin.node.util.PlatformHelper
 import elemental.json.Json
 import elemental.json.JsonObject
 import elemental.json.impl.JsonUtil
@@ -148,24 +146,22 @@ object TaskRunNpmInstall_ {
         // now we have to install the dependencies from package.json! We do this MANUALLY, instead of using the builder
         println("\tInstalling package dependencies")
 
-        val exe = nodeInfo.nodeExe()
-        exe.workingDirectory(buildDir)
-
-        exe.environment["ADBLOCK"] = "1"
-        exe.environment["NO_UPDATE_NOTIFIER"] = "1"
-
-        val scriptFile = if (enablePnpm) nodeInfo.pnpmScript.absolutePath else nodeInfo.npmScript
-        exe.addArg(scriptFile, "install")
-        exe.addArg("--scripts-prepend-node-path")
-
         val debug = VaadinConfig[nodeInfo.project].debug
+        val process = nodeInfo.nodeExe {
+            this.workingDirectory(buildDir)
 
-        if (debug) {
-            exe.enableRead()
-            Util.execDebug(exe)
+            this.environment["ADBLOCK"] = "1"
+            this.environment["NO_UPDATE_NOTIFIER"] = "1"
+
+            val scriptFile = if (enablePnpm) nodeInfo.pnpmScript.absolutePath else nodeInfo.npmScript
+            this.addArg(scriptFile, "install")
+            this.addArg("--scripts-prepend-node-path")
+
+            if (debug) {
+                this.enableRead()
+                Util.execDebug(this)
+            }
         }
-
-        val process = exe.startBlocking()
 
         if (debug) {
             println("\t\tOutput:")

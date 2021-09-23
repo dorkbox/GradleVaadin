@@ -4,7 +4,6 @@ import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.InitParameters
 import com.vaadin.flow.server.frontend.*
 import com.vaadin.flow.server.frontend.scanner.FrontendDependenciesScanner
-import dorkbox.executor.Executor
 import dorkbox.gradleVaadin.node.NodeInfo
 import elemental.json.Json
 import org.gradle.api.Project
@@ -196,21 +195,21 @@ internal class VaadinCompiler(val project: Project) {
         // For information about webpack, SEE https://webpack.js.org/guides/getting-started/
         println("\tGenerating WebPack")
 
-        val exe = nodeInfo.nodeExe()
-                .workingDirectory(nodeInfo.buildDir)
+        val process = nodeInfo.nodeExe {
+            this.workingDirectory(nodeInfo.buildDir)
+                .addArg(webPackExecutableFile.path, "--config", nodeInfo.webPackProdFile.path)
+            this.environment["NO_UPDATE_NOTIFIER"] = "1"
+            this.addArg("--scripts-prepend-node-path")
 
-        exe.environment["NO_UPDATE_NOTIFIER"] = "1"
-
-        exe.addArg(webPackExecutableFile.path, "--config", nodeInfo.webPackProdFile.path)
-
-        if (!debug) {
-            exe.addArg("--silent")
-        } else {
-            exe.enableRead()
-            Util.execDebug(exe)
+            if (!debug) {
+                this.addArg("--silent")
+            } else {
+                this.enableRead()
+                Util.execDebug(this)
+            }
         }
 
-        val process = exe.startBlocking()
+
         if (debug) {
             println("\t\tOutput:")
             process.output.linesAsUtf8().forEach {
