@@ -138,8 +138,26 @@ class Vaadin : Plugin<Project> {
         project.gradle.taskGraph.whenReady(object: Action<TaskExecutionGraph> {
             override fun execute(graph: TaskExecutionGraph) {
                 // every other task will do nothing (run as dev mode).
-                if (graph.allTasks.firstOrNull { it.name == compileProdName } != null) {
+                val allTasks = graph.allTasks
+                var hasVaadinTask = false
+                if (allTasks.firstOrNull { it.name == compileProdName } != null) {
                     config.productionMode.set(true)
+                    hasVaadinTask = true
+                }
+                if (allTasks.firstOrNull { it.name == compileDevName } != null) {
+                    hasVaadinTask = true
+                }
+
+                if (hasVaadinTask) {
+                    val jarTasks = allTasks.filter { it.name.endsWith("jar")}
+                    if (jarTasks.isNotEmpty()) {
+                        println("\tDisabling the gradle cache for:")
+                    }
+                    jarTasks.forEach {
+                        println("\t\t${it.project.name}:${it.name}")
+                        // we ALWAYS want to make sure that this task runs. If *something* is cached, then there jar file output will be incomplete.
+                        it.outputs.upToDateWhen { false }
+                    }
                 }
             }
         })
