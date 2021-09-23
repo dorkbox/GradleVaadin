@@ -16,6 +16,7 @@
 package dorkbox.gradleVaadin
 
 import com.vaadin.flow.server.frontend.FrontendTools
+import com.vaadin.flow.server.frontend.FrontendUtils.*
 import dorkbox.gradleVaadin.node.npm.proxy.ProxySettings
 import org.gradle.api.Project
 import org.gradle.api.tasks.Input
@@ -118,10 +119,39 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
 
 
     @get:Input
-    protected var flowDirectory_ = project.objects.property(String::class.java).convention("./${com.vaadin.flow.server.frontend.FrontendUtils.FRONTEND}")
+    protected var flowDirectory_ = project.objects.property(String::class.java).convention("./$FRONTEND")
     var flowDirectory: String
     get() { return flowDirectory_.get() }
     set(value) { flowDirectory_.set(value)}
+
+
+    // There are SUBTLE differences between windows and not-windows with webpack!
+    // NOTE: RELATIVE TO THE BUILD DIR!
+    // NOTE: this does NOT make sense!
+    //  windows: '..\frontend' (windows + linux -> undertow example only works here, windows -> netref works here)
+    //    linux: 'frontend'  (linux -> netref only works here)
+    //    if (PlatformHelper.INSTANCE.isWindows)
+    //        JsonPackageTools.relativize(buildDir, sourceDir.resolve(config.frontendSourceDirectory))
+    //    else
+    //        FrontendUtils.FRONTEND
+    /**
+     * the location of the GENERATED frontend files, relative to the build directory.
+     */
+    @get:Input
+    protected var frontendGeneratedDirectory_ = project.objects.property(String::class.java).convention("../$FRONTEND")
+    var frontendGeneratedDir: String
+    get() { return frontendGeneratedDirectory_.get() }
+    set(value) { frontendGeneratedDirectory_.set(value)}
+
+
+    /**
+     * the location of the SOURCE frontend files, relative to the build directory.
+     */
+    @get:Input
+    protected var frontendSourceDirectory_ = project.objects.property(String::class.java).convention("../$FRONTEND")
+    var frontendSourceDir: String
+    get() { return frontendSourceDirectory_.get() }
+    set(value) { frontendSourceDirectory_.set(value)}
 
 
 

@@ -5,9 +5,7 @@ import com.vaadin.flow.server.frontend.FrontendUtils
 import com.vaadin.flow.server.frontend.Util
 import dorkbox.executor.Executor
 import dorkbox.executor.processResults.SyncProcessResult
-import dorkbox.gradleVaadin.JsonPackageTools
 import dorkbox.gradleVaadin.VaadinConfig
-import dorkbox.gradleVaadin.node.util.PlatformHelper
 import dorkbox.gradleVaadin.node.variant.VariantComputer
 import org.gradle.api.Project
 
@@ -59,15 +57,15 @@ class NodeInfo(val project: Project) {
     val frontendDir = sourceDir.resolve(FrontendUtils.FRONTEND)
 
     // There are SUBTLE differences between windows and not-windows with webpack!
+    // NOTE: RELATIVE TO THE BUILD DIR!
     // NOTE: this does NOT make sense!
-    //  windows: '..\frontend'
-    //    linux: 'frontend'
-    val frontendDirWebPack = if (PlatformHelper.INSTANCE.isWindows)
-        JsonPackageTools.relativize(buildDir, sourceDir.resolve(FrontendUtils.FRONTEND))
-    else
-//        JsonPackageTools.relativize(buildDir, sourceDir.resolve(FrontendUtils.FRONTEND))
-        FrontendUtils.FRONTEND
+    //  windows: '..\frontend' (windows + linux -> undertow example only works here, windows -> netref works here)
+    //    linux: 'frontend'  (linux -> netref only works here)
+    val frontendDestDir_WebPack = config.frontendGeneratedDir
 
+
+    // this is the location of the SOURCE frontend files, relative to the build directory.
+    val frontendAliasDir_WebPack = config.frontendSourceDir
 
 
     val flowJsonPackageFile = buildDir.resolve(config.flowDirectory).resolve(Constants.PACKAGE_JSON)
