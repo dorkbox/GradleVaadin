@@ -196,30 +196,21 @@ internal class VaadinCompiler(val project: Project) {
         // For information about webpack, SEE https://webpack.js.org/guides/getting-started/
         println("\tGenerating WebPack")
 
-        val ex = Executor()
+        val exe = nodeInfo.nodeExe()
+                .workingDirectory(nodeInfo.buildDir)
 
-        val nodeBinExec = File(nodeInfo.nodeBinExec)
-        ex.executable(nodeBinExec)
-        ex.workingDirectory(nodeInfo.buildDir)
+        exe.environment["NO_UPDATE_NOTIFIER"] = "1"
 
-        // there are path issues on linux. we must add the path!
-        ex.environment["ADBLOCK"] = "1"
-        ex.environment["NO_UPDATE_NOTIFIER"] = "1"
-        Util.addPath(ex.environment, nodeBinExec.parent)
-
-        // --scripts-prepend-node-path is added to fix path issues
-        ex.addArg(webPackExecutableFile.path, "--config", nodeInfo.webPackProdFile.path,
-//            "--scripts-prepend-node-path"
-        )
+        exe.addArg(webPackExecutableFile.path, "--config", nodeInfo.webPackProdFile.path)
 
         if (!debug) {
-            ex.addArg("--silent")
+            exe.addArg("--silent")
         } else {
-            ex.enableRead()
-            Util.execDebug(ex)
+            exe.enableRead()
+            Util.execDebug(exe)
         }
 
-        val process = ex.startBlocking()
+        val process = exe.startBlocking()
         if (debug) {
             println("\t\tOutput:")
             process.output.linesAsUtf8().forEach {

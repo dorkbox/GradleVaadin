@@ -7,6 +7,7 @@ import dorkbox.executor.Executor
 import dorkbox.gradleVaadin.JsonPackageTools
 import dorkbox.gradleVaadin.Vaadin
 import dorkbox.gradleVaadin.VaadinConfig
+import dorkbox.gradleVaadin.node.NodeInfo
 import dorkbox.gradleVaadin.node.util.PlatformHelper
 import dorkbox.gradleVaadin.node.util.PlatformHelper.Companion.validateToolVersion
 import dorkbox.gradleVaadin.node.util.ProjectApiHelper
@@ -35,11 +36,6 @@ abstract class NodeSetupTask : DefaultTask() {
     @get:Inject
     abstract val providers: ProviderFactory
 
-    private val vaadinConfig = VaadinConfig[project]
-
-    @get:Input
-    val download = vaadinConfig.download
-
     @get:InputFile
     val nodeArchiveFile = objects.fileProperty()
 
@@ -47,34 +43,30 @@ abstract class NodeSetupTask : DefaultTask() {
 //    @get:OutputDirectory
 //    val nodeDir = vaadinConfig.nodeJsDir
 
-    @get:Internal
-    val projectHelper = ProjectApiHelper.newInstance(project)
+    private val projectHelper = ProjectApiHelper.newInstance(project)
 
-    private val debug = vaadinConfig.debug
 
-    private val nodeExec = VariantComputer.computeNodeExec(vaadinConfig)
-    private val npmExec = VariantComputer.computeNpmExec(vaadinConfig)
-    private val pNpmScript = VariantComputer.computePnpmScriptFile(vaadinConfig)
-    private val enablePnpm = vaadinConfig.enablePnpm
+    private val vaadinConfig by lazy { VaadinConfig[project] }
+    private val debug by lazy { vaadinConfig.debug }
+
+    private val nodeInfo by lazy { NodeInfo(project) }
+
+    private val nodeExec by lazy { nodeInfo.nodeBinExec}
+    private val npmExec by lazy { VariantComputer.computeNpmExec(vaadinConfig) }
+    private val pNpmScript by lazy { VariantComputer.computePnpmScriptFile(vaadinConfig) }
+    private val enablePnpm by lazy { vaadinConfig.enablePnpm }
 
     private var detectedNodeVersion = ""
     private var detectedNpmVersion = ""
     private var detectedPNpmVersion = ""
 
     // if there is a package.json file ALREADY here, we have to rename it so we can install pnpm.
-    private val projectDir = vaadinConfig.buildDir
-    private val pnpmVersion = vaadinConfig.pnpmVersion
-
-    // can't have Path objects, it won't work
-    private val symbolicLinkOrigs = mutableListOf<Pair<String, File>>()
+    private val projectDir  by lazy { vaadinConfig.buildDir }
+    private val pnpmVersion  by lazy { vaadinConfig.pnpmVersion }
 
     init {
         group = Vaadin.NODE_GROUP
         description = "Download and install a local node/npm version."
-
-        onlyIf {
-            vaadinConfig.download.get()
-        }
 
         outputs.upToDateWhen {
             false
@@ -129,6 +121,7 @@ abstract class NodeSetupTask : DefaultTask() {
     private fun printLog() {
         println("\tNode info: $detectedNodeVersion [$nodeExec]")
         println("\t NPM info: $detectedNpmVersion [$npmExec]")
+
         if (enablePnpm) {
             println("\tpNPM info: $detectedPNpmVersion [$pNpmScript]")
         }
@@ -178,8 +171,10 @@ abstract class NodeSetupTask : DefaultTask() {
         val extractedNode = baseFile.resolve(extractionName)
         val targetNode = nodeDir
 
-        println("\t Renaming: $extractedNode")
-        println("\t       to: $targetNode")
+        if (debug) {
+            println("\t Renaming: $extractedNode")
+            println("\t       to: $targetNode")
+        }
 
         if (!extractedNode.renameTo(targetNode)) {
             throw IOException("Unable to rename directory! Aborting.")
@@ -198,12 +193,43 @@ abstract class NodeSetupTask : DefaultTask() {
             val npmScriptFile = VariantComputer.computeNpmScriptFile(nodeDirProvider, "npm")
 
             Files.deleteIfExists(npm)
-            Files.createSymbolicLink(npm, Paths.get(npmScriptFile))
-
             val npx = nodeBinDirPath.resolve("npx")
             val npxScriptFile = VariantComputer.computeNpmScriptFile(nodeDirProvider, "npx")
             Files.deleteIfExists(npx)
-            Files.createSymbolicLink(npx, Paths.get(npxScriptFile))
+
+            try {
+                Files.createSymbolicLink(npm, Paths.get(npmScriptFile))
+                Files.createSymbolicLink(npx, Paths.get(npxScriptFile))
+            } catch (e: Exception) {
+                // SOMETIMES.... symbolic links aren't supported -- for example a FUSE mounted file system.
+                // so we copy it instead. Not as "good", but good enough
+                File(npmScriptFile).copyTo(npm.toFile(), overwrite = true)
+                File(npxScriptFile).copyTo(npx.toFile(), overwrite = true)
+            }
+
+            // FrontendUtils.getNpmExecutable is a little funny. It
+            //      checks for  "node/node_modules/npm/bin/npm-cli.js", which is the WINDOWS variant.
+            //      Linux is "node/lib/node_modules/npm/bin/npm-cli.js"
+            val nodeJsName = vaadinConfig.nodeJsDir.get().asFile.name
+
+            val fakedNpm = npmScriptFile.replace("$nodeJsName/lib/node_modules/", "$nodeJsName/node_modules/")
+            val fakedNpx = npxScriptFile.replace("$nodeJsName/lib/node_modules/", "$nodeJsName/node_modules/")
+            if (debug) {
+                println("\t\tCreating FIXED npm")
+                println("\t\t\t $fakedNpm to $npmScriptFile")
+                println("\t\t\t   to")
+                println("\t\t\t $npmScriptFile")
+            }
+
+            try {
+                Files.createSymbolicLink(Paths.get(fakedNpm), Paths.get(npmScriptFile))
+                Files.createSymbolicLink(Paths.get(fakedNpx), Paths.get(npxScriptFile))
+            } catch (e: Exception) {
+                // SOMETIMES.... symbolic links aren't supported -- for example a FUSE mounted file system.
+                // so we copy it instead. Not as "good", but good enough
+                File(npmScriptFile).copyTo(File(fakedNpm), overwrite = true)
+                File(npxScriptFile).copyTo(File(fakedNpx), overwrite = true)
+            }
         }
     }
 
@@ -218,16 +244,34 @@ abstract class NodeSetupTask : DefaultTask() {
     }
 
     private fun validateNodeInstall(silent: Boolean = false): Boolean {
+        val nodeExec = File(nodeExec)
+
         if (!vaadinConfig.nodeJsDir.get().asFile.exists() || !nodeExec.exists()) {
-//            println("Doesn't exist ${vaadinConfig.nodeJsDir.get().asFile}  ${nodeExec}")
+            if (debug) {
+                println("Doesn't exist ${vaadinConfig.nodeJsDir.get().asFile}  ${nodeExec}")
+            }
             return false
         }
 
         try {
             // gets the version of Node and NPM and compares them against the supported versions
-            var detectedVersion = Executor.run(nodeExec.absolutePath, "--version").let {
-                PlatformHelper.parseVersionString(it)
+
+
+            var exe = nodeInfo.nodeExe()
+                .enableRead()
+                .addArg("--version")
+
+            if (debug) {
+                Util.execDebug(exe)
             }
+
+            var detectedVersion = exe.startBlocking().output.utf8()
+
+            if (debug) {
+                println("\t\tNODE Detection: $detectedVersion")
+            }
+
+            detectedVersion = PlatformHelper.parseVersionString(detectedVersion)
             var parsedVersion = Version.from(detectedVersion)
             detectedNodeVersion = detectedVersion
 
@@ -239,18 +283,21 @@ abstract class NodeSetupTask : DefaultTask() {
                 return false
             }
 
+            exe = nodeInfo.npmExe()
+                .enableRead()
+                .addArg("--version")
 
-            detectedVersion = if (!PlatformHelper.INSTANCE.isWindows) {
-                // This is a tad-bit different than normally expected, but linux has path issues! (and the same syntax is not supported on windows)
-                Executor.run(nodeExec.absolutePath, npmExec.absolutePath, "--version", "--scripts-prepend-node-path").let {
-                    PlatformHelper.parseVersionString(it)
-                }
-            } else {
-                Executor.run(npmExec.absolutePath, "--version").let {
-                    PlatformHelper.parseVersionString(it)
-                }
+            if (debug) {
+                Util.execDebug(exe)
             }
 
+            detectedVersion = exe.startBlocking().output.utf8()
+
+            if (debug) {
+                println("\t\tNPM Detection: $detectedVersion")
+            }
+
+            detectedVersion = PlatformHelper.parseVersionString(detectedVersion)
             parsedVersion = Version.from(detectedVersion)
             detectedNpmVersion = detectedVersion
 
@@ -262,6 +309,7 @@ abstract class NodeSetupTask : DefaultTask() {
                 return false
             }
         } catch (e: Exception) {
+            e.printStackTrace()
             // who cares what the error is, redo it
             return false
         }
@@ -279,9 +327,9 @@ abstract class NodeSetupTask : DefaultTask() {
             throw GradleException("pNPM version [$pnpmVersion] is invalid!")
         }
 
-        val exe = Executor()
-            .executable(npmExec)
-            .environment("ADBLOCK", "1")
+        println("PNP needs to be configured correctly!")
+
+        val exe = nodeInfo.npmExe()
             .workingDirectory(projectDir)
             .enableRead()
             .addArg("list", "pnpm", "--depth=0")
@@ -290,8 +338,7 @@ abstract class NodeSetupTask : DefaultTask() {
             Util.execDebug(exe)
         }
 
-        val result = exe.startBlocking()
-        val output = result.output.utf8()
+        val output = exe.startBlocking().output.utf8()
         val index = output.indexOf("pnpm@")
         if (index < 2) {
             return false
@@ -356,11 +403,11 @@ abstract class NodeSetupTask : DefaultTask() {
 
 
             // install pnpm locally using npm
-            val exe = Executor()
-                .executable(npmExec)
-                .environment("ADBLOCK", "1")
+
+            val exe = nodeInfo.npmExe()
                 .workingDirectory(projectDir)
                 .addArg("--shamefully-hoist=true", "install", "pnpm@$pnpmVersion")
+//                .addArg("--scripts-prepend-node-path")
 
             if (debug) {
                 exe.enableRead()

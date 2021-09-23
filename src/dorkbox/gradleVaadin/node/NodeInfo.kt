@@ -2,11 +2,14 @@ package dorkbox.gradleVaadin.node
 
 import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.frontend.FrontendUtils
+import com.vaadin.flow.server.frontend.Util
+import dorkbox.executor.Executor
 import dorkbox.gradleVaadin.JsonPackageTools
 import dorkbox.gradleVaadin.VaadinConfig
 import dorkbox.gradleVaadin.node.util.PlatformHelper
 import dorkbox.gradleVaadin.node.variant.VariantComputer
 import org.gradle.api.Project
+import java.io.File
 
 /**
  *
@@ -62,7 +65,8 @@ class NodeInfo(val project: Project) {
     val frontendDirWebPack = if (PlatformHelper.INSTANCE.isWindows)
         JsonPackageTools.relativize(buildDir, sourceDir.resolve(FrontendUtils.FRONTEND))
     else
-        FrontendUtils.FRONTEND
+        JsonPackageTools.relativize(buildDir, sourceDir.resolve(FrontendUtils.FRONTEND))
+//        FrontendUtils.FRONTEND
 
 
 
@@ -93,4 +97,20 @@ class NodeInfo(val project: Project) {
     val npmScript by lazy { VariantComputer.computeNpmScriptFile(nodeDirProvider, "npm") }
 
     val pnpmScript = VariantComputer.computePnpmScriptFile(config)
+
+    fun nodeExe(): Executor {
+        return Executor()
+            .executable(nodeBinExec)
+//            .workingDirectory(File(nodeBinExec).parent)
+            .environment("ADBLOCK", "1")
+            .also {
+                it.useSystemEnvironment()
+                Util.addPath(it.environment, nodeBinDirProvider.get().asFile.path)
+            }
+    }
+
+    fun npmExe(): Executor {
+        return nodeExe()
+            .addArg(npmScript)
+    }
 }

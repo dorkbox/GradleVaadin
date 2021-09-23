@@ -148,30 +148,24 @@ object TaskRunNpmInstall_ {
         // now we have to install the dependencies from package.json! We do this MANUALLY, instead of using the builder
         println("\tInstalling package dependencies")
 
-        val ex = Executor()
+        val exe = nodeInfo.nodeExe()
+        exe.workingDirectory(buildDir)
 
-        val exe = File(nodeInfo.nodeBinExec)
-        ex.executable(exe)
-        ex.workingDirectory(buildDir)
-
-        ex.environment["ADBLOCK"] = "1"
-        ex.environment["NO_UPDATE_NOTIFIER"] = "1"
-        Util.addPath(ex.environment, exe.parent)
+        exe.environment["ADBLOCK"] = "1"
+        exe.environment["NO_UPDATE_NOTIFIER"] = "1"
 
         val scriptFile = if (enablePnpm) nodeInfo.pnpmScript.absolutePath else nodeInfo.npmScript
-        ex.addArg(scriptFile, "install")
-        if (!PlatformHelper.INSTANCE.isWindows) {
-            ex.addArg("--scripts-prepend-node-path")
-        }
+        exe.addArg(scriptFile, "install")
+        exe.addArg("--scripts-prepend-node-path")
 
         val debug = VaadinConfig[nodeInfo.project].debug
 
         if (debug) {
-            ex.enableRead()
-            Util.execDebug(ex)
+            exe.enableRead()
+            Util.execDebug(exe)
         }
 
-        val process = ex.startBlocking()
+        val process = exe.startBlocking()
 
         if (debug) {
             println("\t\tOutput:")
