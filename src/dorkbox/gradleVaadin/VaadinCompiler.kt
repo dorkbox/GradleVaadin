@@ -62,7 +62,7 @@ internal class VaadinCompiler(val project: Project) {
 
     val frontendDependencies by lazy {
         // this cannot be refactored out! (as tempting as that might be...)
-        FrontendDependenciesScanner.FrontendDependenciesScannerFactory().createScanner(true, customClassFinder, true)
+        FrontendDependenciesScanner.FrontendDependenciesScannerFactory().createScanner(false, customClassFinder, true)
     }
     // SEE: com.vaadin.flow.server.startup.DevModeInitializer
 
