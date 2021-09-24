@@ -33,7 +33,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to build Vaadin for use by the VaadinUndertow library"
     const val group = "com.dorkbox"
-    const val version = "14.1.2"
+    const val version = "14.1.3"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
@@ -73,6 +73,7 @@ dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin")
 
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${Extras.coroutineVer}")
 
     // Uber-fast, ultra-lightweight Java classpath and module path scanner
     implementation("io.github.classgraph:classgraph:4.8.116")
@@ -81,7 +82,7 @@ dependencies {
     implementation("com.vaadin:flow-server:${Extras.vaadinFlowVer}")
 
     implementation("com.dorkbox:VaadinUndertow:${Extras.mavenVaadinGradleVer}") // this must match what is in VaadinConfig
-    implementation("com.dorkbox:Executor:3.3.2")
+    implementation("com.dorkbox:Executor:3.4")
     implementation("com.dorkbox:Version:2.4")
 }
 
@@ -97,6 +98,11 @@ tasks.jar.get().apply {
         attributes["Implementation-Title"] = "${Extras.group}.${Extras.id}"
         attributes["Implementation-Version"] = Extras.buildDate
         attributes["Implementation-Vendor"] = Extras.vendor
+    }
+
+    doLast {
+        val file = archiveFile.get().asFile
+        println("\t${file.path}\n\tSize: ${file.length().toDouble() / (1_000 * 1_000)} MB")
     }
 }
 
