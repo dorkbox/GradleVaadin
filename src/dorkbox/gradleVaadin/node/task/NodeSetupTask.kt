@@ -142,9 +142,10 @@ abstract class NodeSetupTask : DefaultTask() {
         println("\t   Unpack: $archiveFile")
         println("\t   Target: $targetDirectory")
 
-        // if we already exist (because somethign screwed up), delete it!
-        if (targetDirectory.exists()) {
-            targetDirectory.deleteRecursively()
+        // if we already exist (because something screwed up), delete it!
+        val archiveDest = targetDirectory.resolve(archiveFile.name)
+        if (archiveDest.exists()) {
+            archiveDest.deleteRecursively()
         }
 
         if (archiveFile.name.endsWith("zip")) {
