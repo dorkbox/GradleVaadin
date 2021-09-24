@@ -6,6 +6,8 @@ import com.vaadin.flow.server.frontend.*
 import com.vaadin.flow.server.frontend.scanner.FrontendDependenciesScanner
 import dorkbox.gradleVaadin.node.NodeInfo
 import elemental.json.Json
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import org.gradle.api.Project
 import org.gradle.api.tasks.SourceSetContainer
 import java.io.File
@@ -189,11 +191,11 @@ internal class VaadinCompiler(val project: Project) {
         // For information about webpack, SEE https://webpack.js.org/guides/getting-started/
         println("\tGenerating WebPack")
 
-        val process = nodeInfo.nodeExe {
+        val process = nodeInfo.nodeExeAsync {
             this.workingDirectory(nodeInfo.buildDir)
                 .addArg(webPackExecutableFile.path, "--config", nodeInfo.webPackProdFile.path)
             this.environment["NO_UPDATE_NOTIFIER"] = "1"
-            this.addArg("--scripts-prepend-node-path")
+//            this.addArg("--scripts-prepend-node-path")
 
             if (!debug) {
                 this.addArg("--silent")
@@ -204,15 +206,21 @@ internal class VaadinCompiler(val project: Project) {
         }
 
 
-        if (debug) {
-            println("\t\tOutput:")
-            process.output.linesAsUtf8().forEach {
-                println("\t\t\t$it")
+        val output = process.output
+        val result = runBlocking {
+            if (debug) {
+                launch {
+                    while (output.isOpen) {
+                        print(output.utf8())
+                    }
+                }
             }
+
+            process.await()
         }
 
-        if (process.exitValue != 0) {
-            println("Process failed with ${process.exitValue}!")
+        if (result.exitValue != 0) {
+            println("Process failed with ${result.exitValue}!")
         }
 
         val ms = (System.nanoTime() - start) / 1000000

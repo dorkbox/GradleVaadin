@@ -3,6 +3,7 @@ package dorkbox.gradleVaadin.node
 import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.frontend.FrontendUtils
 import com.vaadin.flow.server.frontend.Util
+import dorkbox.executor.DeferredProcessResult
 import dorkbox.executor.Executor
 import dorkbox.executor.processResults.SyncProcessResult
 import dorkbox.gradleVaadin.VaadinConfig
@@ -119,6 +120,20 @@ class NodeInfo(val project: Project) {
         config(exe)
 
         return exe.startBlocking()
+    }
+
+    fun nodeExeAsync(config: Executor.() -> Unit): DeferredProcessResult {
+        val exe = Executor()
+            .executable(nodeBinExec)
+//            .workingDirectory(File(nodeBinExec).parent)
+            .environment("ADBLOCK", "1")
+            .useSystemEnvironment()
+
+        Util.addPath(exe.environment, nodeBinDir.path)
+
+        config(exe)
+
+        return exe.startAsync()
     }
 
     fun nodeExeOutput(config: Executor.() -> Unit): String {
