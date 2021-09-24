@@ -38,7 +38,7 @@ object TaskCopyFrontendFiles_ {
         classPathScanResult.close()
         /////////////////////
 
-        val targetDirectory = Util.createFrontendDir(nodeInfo)
+        val targetDirectory = nodeInfo.createFrontendDir()
 
         println("\tCopying jar frontend resources to '$targetDirectory'")
 

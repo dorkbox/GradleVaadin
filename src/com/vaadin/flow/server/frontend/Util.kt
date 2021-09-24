@@ -82,13 +82,4 @@ object Util {
             throw GradleException("Unable to continue. Target generation dir $frontendGeneratedDir cannot be created")
         }
     }
-
-    fun createFrontendDir(nodeInfo: NodeInfo): File {
-        val targetDirectory = nodeInfo.generatedNodeModules.resolve(FrontendUtils.FLOW_NPM_PACKAGE_NAME)
-        if (!targetDirectory.exists() && !targetDirectory.mkdirs()) {
-            throw GradleException("Unable to create target directory: $targetDirectory")
-        }
-        return targetDirectory
-    }
-
 }

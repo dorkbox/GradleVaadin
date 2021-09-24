@@ -8,12 +8,16 @@ import dorkbox.gradleVaadin.node.NodeInfo
 object TaskCopyLocalFrontendFiles_ {
     fun execute(nodeInfo: NodeInfo) {
         val frontendDir = nodeInfo.frontendDir
+        val targetDirectory = nodeInfo.createFrontendDir()
+
+        if (nodeInfo.debug) {
+            println("Copy Source: $frontendDir")
+            println("Copy Target: $targetDirectory")
+        }
 
         // copy Local Resources
         if (frontendDir.isDirectory) {
-            val targetDirectory = Util.createFrontendDir(nodeInfo)
-
-            println("\tCopying local frontend resources to '$targetDirectory'")
+            println("\tCopying local frontend resources")
 
             val start = System.nanoTime()
             frontendDir.absoluteFile.copyRecursively(targetDirectory, true)
