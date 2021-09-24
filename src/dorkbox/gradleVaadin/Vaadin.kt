@@ -47,8 +47,8 @@ class Vaadin : Plugin<Project> {
         const val YARN_GROUP = "Yarn"
 
         const val SHUTDOW_TASK = "shutdownCompiler"
-        const val compileDevName = "compileResources-DEV"
-        const val compileProdName = "compileResources-PROD"
+        const val compileDevName = "vaadinDevelopment"
+        const val compileProdName = "vaadinProduction"
 
         /**
          * Recursively resolves all child dependencies of the project
@@ -85,8 +85,16 @@ class Vaadin : Plugin<Project> {
     private lateinit var config: VaadinConfig
 
 
-    @Suppress("ObjectLiteralToLambda")
     private fun newTask(dependencyTask: Task,
+                        taskName: String,
+                        description: String,
+                        inputs: TaskInputs.()->Unit = {},
+                        action: Task.(vaadinCompiler: VaadinCompiler) -> Unit): Task {
+        return newTask(dependencyTask.name, taskName, description, inputs, action)
+    }
+
+    @Suppress("ObjectLiteralToLambda")
+    private fun newTask(dependencyTask: String,
                         taskName: String,
                         description: String,
                         inputs: TaskInputs.()->Unit = {},
@@ -155,13 +163,9 @@ class Vaadin : Plugin<Project> {
                     if (jarTasks.isNotEmpty()) {
                         project.tasks.withType(Jar::class.java) {
                             // we ALWAYS want to make sure that this task runs. If *something* is cached, then there jar file output will be incomplete.
+                            it.outputs.cacheIf { false }
                             it.outputs.upToDateWhen { false }
                         }
-
-                        println("\tDisabling the gradle cache for:")
-                    }
-                    jarTasks.forEach {
-                        println("\t\t${it.project.name}:${it.name}")
                     }
                 }
             }
@@ -199,13 +203,8 @@ class Vaadin : Plugin<Project> {
             })
         }
 
-
-        val nodeSetup = project.tasks.named(NodeSetupTask.NAME).get().apply {
-            // our class-scanner scans COMPILED CLASSES, so this is required.
-            dependsOn(project.tasks.named("classes"))
-        }
-
-        val generateWebComponents = newTask(nodeSetup, "generateWebComponents", "Generate Vaadin web components")
+        // NOTE! our class-scanner scans COMPILED CLASSES, so it is required to depend (at some point) on class compilation!
+        val generateWebComponents = newTask(NodeSetupTask.NAME, "generateWebComponents", "Generate Vaadin web components")
         { vaadinCompiler ->
             VaadinConfig[project].vaadinCompiler.log()
             vaadinCompiler.generateWebComponents()
@@ -312,54 +311,56 @@ class Vaadin : Plugin<Project> {
         }
 
         project.tasks.create(compileDevName).apply {
-            dependsOn(createTokenFile, project.tasks.named("classes"))
+            dependsOn(createTokenFile)
             finalizedBy(SHUTDOW_TASK)
 
             group = "vaadin"
             description = "Compile Vaadin resources for Development"
 
-            // enable caching for the compile task
-            outputs.cacheIf { true }
+            outputs.cacheIf { false }
+            outputs.upToDateWhen { false }
 
-            inputs.files(
-                "${project.projectDir}/package.json",
-                "${project.projectDir}/package-lock.json",
-                "${project.projectDir}/webpack.config.js",
-                "${project.projectDir}/webpack.production.js"
-            )
-
-            outputs.dir("${project.buildDir}/config")
-            outputs.dir("${project.buildDir}/resources")
-
-            outputs.dir("${project.buildDir}/nodejs")
-            outputs.dir("${project.buildDir}/node_modules")
+//            inputs.files(
+//                "${project.projectDir}/package.json",
+//                "${project.projectDir}/package-lock.json",
+//                "${project.projectDir}/webpack.config.js",
+//                "${project.projectDir}/webpack.production.js"
+//            )
+//
+//            outputs.dir("${project.buildDir}/config")
+//            outputs.dir("${project.buildDir}/resources")
+//
+//            outputs.dir("${project.buildDir}/nodejs")
+//            outputs.dir("${project.buildDir}/node_modules")
         }
 
 
         project.tasks.create(compileProdName).apply {
-            dependsOn(generateWebPack, project.tasks.named("classes"))
+            dependsOn(generateWebPack)
             finalizedBy(SHUTDOW_TASK)
 
             group = "vaadin"
             description = "Compile Vaadin resources for Production"
 
-            // enable caching for the compile task
-            outputs.cacheIf { true }
-
-            inputs.files(
-                "${project.projectDir}/package.json",
-                "${project.projectDir}/package-lock.json",
-                "${project.projectDir}/webpack.config.js",
-                "${project.projectDir}/webpack.production.js"
-            )
-
-            outputs.dir("${project.buildDir}/resources/main/META-INF/resources/VAADIN")
-            outputs.dir("${project.buildDir}/node_modules")
+            outputs.cacheIf { false }
+            outputs.upToDateWhen { false }
+//
+//            inputs.files(
+//                "${project.projectDir}/package.json",
+//                "${project.projectDir}/package-lock.json",
+//                "${project.projectDir}/webpack.config.js",
+//                "${project.projectDir}/webpack.production.js"
+//            )
+//
+//            outputs.dir("${project.buildDir}/resources/main/META-INF/resources/VAADIN")
+//            outputs.dir("${project.buildDir}/node_modules")
         }
 
-        project.childProjects.values.forEach {
-            it.pluginManager.apply(Vaadin::class.java)
-        }
+//        config.addSubprojects()
+
+//        project.childProjects.values.forEach {
+//            it.pluginManager.apply(Vaadin::class.java)
+//        }
     }
 
     // required to make sure the plugins are correctly applied. ONLY applying it to the project WILL NOT work.

@@ -127,17 +127,16 @@ abstract class NodeSetupTask : DefaultTask() {
     }
 
     private fun deleteExistingNode() {
-        println("\t Deleting: ${vaadinConfig.nodeJsDir.get()}")
-
-        projectHelper.delete {
-            // only delete the nodejs dir, NOT the parent dir!
-            it.delete(vaadinConfig.nodeJsDir)
+        vaadinConfig.nodeJsDir__.run {
+            println("\t Deleting: $this")
+            deleteRecursively()
+            parentFile.mkdirs()
         }
     }
 
     private fun unpackNodeArchive() {
         val archiveFile = nodeArchiveFile.get().asFile
-        val targetDirectory = vaadinConfig.buildDir
+        val targetDirectory = vaadinConfig.nodeJsDir__.parentFile
 
         println("\t   Unpack: $archiveFile")
         println("\t   Target: $targetDirectory")
@@ -162,21 +161,19 @@ abstract class NodeSetupTask : DefaultTask() {
     }
 
     private fun renameDirectory() {
-        val nodeDirProvider = vaadinConfig.nodeJsDir
         val extractionName = VariantComputer.computeExtractionName(vaadinConfig)
 
-        val nodeDir = nodeDirProvider.get().asFile
-        val baseFile = nodeDir.parentFile
+        val targetDir = vaadinConfig.nodeJsDir__
+        val baseFile = targetDir.parentFile
 
         val extractedNode = baseFile.resolve(extractionName)
-        val targetNode = nodeDir
 
         if (debug) {
             println("\t Renaming: $extractedNode")
-            println("\t       to: $targetNode")
+            println("\t       to: $targetDir")
         }
 
-        if (!extractedNode.renameTo(targetNode)) {
+        if (!extractedNode.renameTo(targetDir)) {
             throw IOException("Unable to rename directory! Aborting.")
         }
     }
@@ -246,9 +243,9 @@ abstract class NodeSetupTask : DefaultTask() {
     private fun validateNodeInstall(silent: Boolean = false): Boolean {
         val nodeExec = File(nodeExec)
 
-        if (!vaadinConfig.nodeJsDir.get().asFile.exists() || !nodeExec.exists()) {
+        if (!vaadinConfig.nodeJsDir__.exists() || !nodeExec.exists()) {
             if (debug) {
-                println("Doesn't exist ${vaadinConfig.nodeJsDir.get().asFile}  ${nodeExec}")
+                println("Doesn't exist ${vaadinConfig.nodeJsDir__}  ${nodeExec}")
             }
             return false
         }

@@ -20,10 +20,6 @@ import java.io.File
 internal class VaadinCompiler(val project: Project) {
     private val config = VaadinConfig[project]
 
-    val baseDir = config.sourceRootDir
-    val buildDir = config.buildDir
-
-
     // REGARDING the current version of polymer.
     // see: com.vaadin.flow.server.frontend.NodeUpdater.updateMainDefaultDependencies
     val polymerVersion = "3.2.0"
@@ -80,9 +76,9 @@ internal class VaadinCompiler(val project: Project) {
             println("\t\tVaadin version: ${VaadinConfig.VAADIN_VERSION}")
             println("\t\tPolymer version: $polymerVersion")
 
-            println("\t\tBase Dir: $baseDir")
-            println("\t\tBuild Dir: $buildDir")
-            println("\t\tNode Dir: ${VaadinConfig[project].nodeJsDir.get().asFile}")
+            println("\t\tBase Dir: ${config.projectDir}")
+            println("\t\tBuild Dir: ${config.buildDir}")
+            println("\t\tNode Dir: ${config.nodeJsDir__}")
 
             println("\t\tGenerated Dir: ${nodeInfo.frontendGeneratedDir}")
             println("\t\tWebPack Executable: ${nodeInfo.webPackExecutableFile}")
@@ -146,16 +142,14 @@ internal class VaadinCompiler(val project: Project) {
         if (!productionMode) {
             // used for defining folder paths for dev server
 
-            buildInfo.put(Constants.NPM_TOKEN, buildDir.absolutePath)
+            buildInfo.put(Constants.NPM_TOKEN, config.buildDir.absolutePath)
             buildInfo.put(Constants.GENERATED_TOKEN, nodeInfo.frontendGeneratedDir.absolutePath)
             buildInfo.put(Constants.FRONTEND_TOKEN, nodeInfo.frontendDir.absolutePath)
         } else {
             // only applicable when in production mode
 
             buildInfo.put(dorkbox.vaadin.util.VaadinConfig.EXTRACT_JAR, config.extractJar) // matches vaadin application launcher
-            buildInfo.put(dorkbox.vaadin.util.VaadinConfig.EXTRACT_JAR_OVERWRITE, config.extractJarOverwrite) // matches vaadin application launcher
         }
-
 
 
         JsonPackageTools.writeJson(nodeInfo.tokenFile, buildInfo)

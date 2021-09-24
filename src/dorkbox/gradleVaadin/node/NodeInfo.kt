@@ -7,7 +7,9 @@ import dorkbox.executor.Executor
 import dorkbox.executor.processResults.SyncProcessResult
 import dorkbox.gradleVaadin.VaadinConfig
 import dorkbox.gradleVaadin.node.variant.VariantComputer
+import org.gradle.api.GradleException
 import org.gradle.api.Project
+import java.io.File
 
 /**
  *
@@ -15,7 +17,7 @@ import org.gradle.api.Project
 class NodeInfo(val project: Project) {
     val config = VaadinConfig[project]
 
-    val sourceDir = config.sourceRootDir.absoluteFile.normalize()
+    val sourceDir = config.projectDir.absoluteFile.normalize()
     val buildDir = config.buildDir.absoluteFile.normalize()
 
 
@@ -79,14 +81,14 @@ class NodeInfo(val project: Project) {
 
 
     val nodeDirProvider = config.nodeJsDir
-    val nodeBinDirProvider = VariantComputer.computeNodeBinDir(nodeDirProvider)
+    val nodeBinDir by lazy { VariantComputer.computeNodeBinDir(config.nodeJsDir__) }
 
-    val nodeBinExec by lazy { VariantComputer.computeNodeExec(config, nodeBinDirProvider).get() } // dont' want to compute things too early
+    val nodeBinExec by lazy { VariantComputer.computeNodeExec(config, nodeBinDir) } // dont' want to compute things too early
 
 
-    val nodeDir = nodeDirProvider.get().asFile
+    val nodeJsDir by lazy { config.nodeJsDir__ }
 
-    val nodeModulesDir = nodeDir.parentFile.resolve("node_modules")
+    val nodeModulesDir = nodeJsDir.parentFile.resolve("node_modules")
 
     val npmDirProvider = VariantComputer.computeNpmDir(config, nodeDirProvider)
     val npmBinDirProvider = VariantComputer.computeNpmBinDir(npmDirProvider)
@@ -96,6 +98,15 @@ class NodeInfo(val project: Project) {
 
     val pnpmScript = VariantComputer.computePnpmScriptFile(config)
 
+    fun createFrontendDir(): File {
+        val targetDirectory = generatedNodeModules.resolve(FrontendUtils.FLOW_NPM_PACKAGE_NAME)
+        if (!targetDirectory.exists() && !targetDirectory.mkdirs()) {
+            throw GradleException("Unable to create target directory: $targetDirectory")
+        }
+        return targetDirectory
+    }
+
+
     fun nodeExe(config: Executor.() -> Unit): SyncProcessResult {
         val exe = Executor()
             .executable(nodeBinExec)
@@ -103,7 +114,7 @@ class NodeInfo(val project: Project) {
             .environment("ADBLOCK", "1")
             .useSystemEnvironment()
 
-        Util.addPath(exe.environment, nodeBinDirProvider.get().asFile.path)
+        Util.addPath(exe.environment, nodeBinDir.path)
 
         config(exe)
 
@@ -117,7 +128,7 @@ class NodeInfo(val project: Project) {
             .environment("ADBLOCK", "1")
             .useSystemEnvironment()
 
-        Util.addPath(exe.environment, nodeBinDirProvider.get().asFile.path)
+        Util.addPath(exe.environment, nodeBinDir.path)
 
         config(exe)
 
@@ -137,7 +148,7 @@ class NodeInfo(val project: Project) {
             .addArg(npmScript)
             .useSystemEnvironment()
 
-            Util.addPath(exe.environment, nodeBinDirProvider.get().asFile.path)
+            Util.addPath(exe.environment, nodeBinDir.path)
 
         config(exe)
 

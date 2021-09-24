@@ -19,6 +19,7 @@ object VariantComputer {
 
 
     fun computeNodeBinDir(nodeDirProvider: Provider<Directory>) = computeProductBinDir(nodeDirProvider)
+    fun computeNodeBinDir(nodeDir: File) = computeProductBinDir(nodeDir)
 
     fun computeNodeExec(vaadinConfig: VaadinConfig): File {
         val nodeDirProvider = vaadinConfig.nodeJsDir
@@ -35,6 +36,15 @@ object VariantComputer {
                 val nodeCommand = if (platformHelper.isWindows) "node.exe" else "node"
                 nodeBinDir.dir(nodeCommand).asFile.absolutePath
             } else "node"
+        }
+    }
+
+    fun computeNodeExec(vaadinConfig: VaadinConfig, nodeBinDir: File): String {
+        return if (vaadinConfig.download.get()) {
+            val nodeCommand = if (platformHelper.isWindows) "node.exe" else "node"
+            nodeBinDir.resolve(nodeCommand).absolutePath
+        } else {
+            "node"
         }
     }
 
@@ -133,6 +143,9 @@ object VariantComputer {
 
     private fun computeProductBinDir(productDirProvider: Provider<Directory>) =
             if (platformHelper.isWindows) productDirProvider else productDirProvider.map { it.dir("bin") }
+
+    private fun computeProductBinDir(productDirProvider: File) =
+            if (platformHelper.isWindows) productDirProvider else productDirProvider.resolve("bin")
 
     fun computeNodeArchiveDependency(vaadinConfig: VaadinConfig): String {
         val osName = platformHelper.osName

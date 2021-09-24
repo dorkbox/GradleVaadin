@@ -19,6 +19,7 @@ import com.vaadin.flow.server.frontend.FrontendTools
 import com.vaadin.flow.server.frontend.FrontendUtils.*
 import dorkbox.gradleVaadin.node.npm.proxy.ProxySettings
 import org.gradle.api.Project
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.Input
 import java.io.File
 import java.util.*
@@ -50,25 +51,14 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
 
     val version = VAADIN_VERSION
 
-
-
-
-    // this changes if the build production task is run. WE DO NOT MANUALLY CHANGE THIS, it is automatic!
-    internal var productionMode = project.objects.property(Boolean::class.java).convention(false)
-
-    internal val nodeModulesDir: File
-    get() {
-        return buildDir.resolve("node_modules")
-    }
-
     /**
      * Directory where all of the source code lives
      */
     @get:Input
-    protected var sourceRootDir_ = project.objects.property(File::class.java).convention(project.projectDir)
-    var sourceRootDir: File
-        get() { return sourceRootDir_.get() }
-        set(value) { sourceRootDir_.set(value)}
+    protected var projectDir_ = project.objects.property(File::class.java).convention(project.projectDir)
+    var projectDir: File
+        get() { return projectDir_.get() }
+        set(value) { projectDir_.set(value)}
 
 
     /**
@@ -79,8 +69,15 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
     protected var buildDir_ = project.objects.property(File::class.java).convention(project.buildDir)
     var buildDir: File
         get() { return buildDir_.get() }
-        set(value) { buildDir_.set(value)}
+        set(value) { buildDir_.set(value) }
 
+
+
+    // this changes if the build production task is run. WE DO NOT MANUALLY CHANGE THIS, it is automatic!
+    internal var productionMode = project.objects.property(Boolean::class.java).convention(false)
+
+    internal val nodeModulesDir: File
+    get() { return buildDir.resolve("node_modules") }
 
     @get:Input
     protected var debug_ = project.objects.property(Boolean::class.java).convention(false)
@@ -98,17 +95,6 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
     var extractJar: Boolean
     get() { return extractJar_.get() }
     set(value) { extractJar_.set(value)}
-
-    /**
-     * Used by the custom vaadin application launcher.
-     * When extracting contents from a jar, to overwrite the destination file or not
-     * Usually -- for performance reasons, you want it to "self extract" the jar. For rapid testing, you don't always want this.
-     */
-    @get:Input
-    protected var extractJarOverwrite_ = project.objects.property(Boolean::class.java).convention(false)
-    var extractJarOverwrite: Boolean
-    get() { return extractJarOverwrite_.get() }
-    set(value) { extractJarOverwrite_.set(value)}
 
 
     @get:Input
@@ -198,39 +184,61 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
 
 
 
+    val buildDir____: DirectoryProperty = project.objects.directoryProperty()
+    internal var buildDir__: DirectoryProperty
+        get() {
+            if (!buildDir____.isPresent) {
+                buildDir____.set(buildDir)
+            }
+            return buildDir____
+        }
+        set(value) { buildDir____.set(value)}
 
-
-
-
-    private val buildDir__ = project.layout.buildDirectory
-
-//    /**
-//     * The directory where the build occurs.
-//     * Also where package.json and the node_modules directory are located
-//     */
-//    val buildDir = project.objects.directoryProperty().convention(buildDir_)
 
     /**
      * The directory where Node.js is unpacked (when download is true)
      */
-    val nodeJsDir = project.objects.directoryProperty().convention(buildDir__.dir("nodejs"))
+    val nodeJsDir_ = project.objects.directoryProperty()
+    internal var nodeJsDir: DirectoryProperty
+        get() {
+            if (!nodeJsDir_.isPresent) {
+                nodeJsDir_.set(buildDir__.dir("nodejs"))
+            }
+            return nodeJsDir_
+        }
+        set(value) { nodeJsDir_.set(value)}
+
+
+    val nodeJsDir__ by lazy { buildDir.resolve("nodejs") }
 
     /**
      * The directory where npm is installed (when a specific version is defined)
      */
-    val npmDir = project.objects.directoryProperty().convention(buildDir__.dir("npm"))
+    val npmDir__ = project.objects.directoryProperty()
+    internal var npmDir: DirectoryProperty
+        get() {
+            if (!npmDir__.isPresent) {
+                npmDir__.set(buildDir__.dir("npm"))
+            }
+            return npmDir__
+        }
+        set(value) { npmDir__.set(value)}
+
+
 
     /**
      * The directory where yarn is installed (when a Yarn task is used)
      */
-    val yarnDir = project.objects.directoryProperty().convention(buildDir__.dir("yarn"))
+    val yarnDir_ = project.objects.directoryProperty()
+    internal var yarnDir: DirectoryProperty
+        get() {
+            if (!yarnDir_.isPresent) {
+                yarnDir_.set(buildDir__.dir("yarn"))
+            }
+            return yarnDir_
+        }
+        set(value) { yarnDir_.set(value)}
 
-    /**
-     * The Node.js project directory location
-     * This is where the package.json file and node_modules directory are located
-     * By default it is at the root of the current project
-     */
-    val nodeProjectDir = project.objects.directoryProperty().convention(buildDir__)
 
     /**
      * Version of node to download and install (only used if download is true)
