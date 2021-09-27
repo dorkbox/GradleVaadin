@@ -38,6 +38,8 @@ import java.io.File
 
 /**
  * For managing Vaadin gradle tasks
+ *
+ * NOTE: Vaadin css resources are compiled into the stats.json file, they are NOT loaded "statically" from the webserver
  */
 @Suppress("UnstableApiUsage", "unused", "SameParameterValue")
 class Vaadin : Plugin<Project> {
