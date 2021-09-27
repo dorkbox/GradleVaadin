@@ -124,17 +124,17 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
      * the location of the GENERATED frontend files, relative to the build directory.
      */
     @get:Input
-    protected var frontendGeneratedDirectory_ = project.objects.property(String::class.java).convention("../$FRONTEND")
+    protected var frontendGeneratedDirectory_ = project.objects.property(String::class.java).convention("$FRONTEND")
     var frontendGeneratedDir: String
     get() { return frontendGeneratedDirectory_.get() }
     set(value) { frontendGeneratedDirectory_.set(value)}
 
 
     /**
-     * the location of the SOURCE frontend files, relative to the build directory.
+     * the location of the SOURCE frontend files, relative to the source directory.
      */
     @get:Input
-    protected var frontendSourceDirectory_ = project.objects.property(String::class.java).convention("../$FRONTEND")
+    protected var frontendSourceDirectory_ = project.objects.property(String::class.java).convention("$FRONTEND")
     var frontendSourceDir: String
     get() { return frontendSourceDirectory_.get() }
     set(value) { frontendSourceDirectory_.set(value)}

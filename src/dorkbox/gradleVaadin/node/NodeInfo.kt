@@ -64,11 +64,12 @@ class NodeInfo(val project: Project) {
     // NOTE: this does NOT make sense!
     //  windows: '..\frontend' (windows + linux -> undertow example only works here, windows -> netref works here)
     //    linux: 'frontend'  (linux -> netref only works here)
-    val frontendDestDir_WebPack = config.frontendGeneratedDir
+    // frontend generated directory. Resolved to absolute path
+    val frontendDestDir_WebPack = buildDir.resolve(config.frontendGeneratedDir).normalize()
 
 
-    // this is the location of the SOURCE frontend files, relative to the build directory.
-    val frontendAliasDir_WebPack = config.frontendSourceDir
+    // this is the absolute location of the SOURCE frontend files.
+    val frontendSourceDir_WebPack = sourceDir.resolve(config.frontendSourceDir).normalize()
 
 
     val flowJsonPackageFile = buildDir.resolve(config.flowDirectory).resolve(Constants.PACKAGE_JSON)
@@ -77,6 +78,7 @@ class NodeInfo(val project: Project) {
 
     val generatedFilesDir = buildDir.resolve(FrontendUtils.FRONTEND)
 
+    // absolute path
     val flowImportFile = generatedFilesDir.resolve(FrontendUtils.IMPORTS_NAME)
     val flowFallbackImportFile = generatedFilesDir.resolve(FrontendUtils.FALLBACK_IMPORTS_NAME)
 
