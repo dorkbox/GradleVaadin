@@ -6,6 +6,7 @@ import dorkbox.gradleVaadin.JsonPackageTools
 import dorkbox.gradleVaadin.node.NodeInfo
 import elemental.json.Json
 import elemental.json.JsonObject
+import nonapi.io.github.classgraph.utils.VersionFinder.OS
 import org.gradle.api.GradleException
 import org.slf4j.Logger
 import java.io.File
@@ -22,6 +23,8 @@ object Util {
     // This will hep us know to execute even when another developer has pushed
     // a new hash to the code repository.
     val INSTALL_HASH = ".vaadin/vaadin.json"
+
+    val regex = "\\\\".toRegex()
 
     fun addPath(environment: MutableMap<String, String?>, pathToInject: String) {
         // Take care of Windows environments that may contain "Path" OR "PATH" - both existing
@@ -80,6 +83,26 @@ object Util {
     fun ensureDirectoryExists(frontendGeneratedDir: File) {
         if (!frontendGeneratedDir.exists() && !frontendGeneratedDir.mkdirs()) {
             throw GradleException("Unable to continue. Target generation dir $frontendGeneratedDir cannot be created")
+        }
+    }
+
+    fun universalPath(file: File): String {
+        val universal = if (org.gradle.internal.os.OperatingSystem.current().isWindows) {
+            // on windows, we MUST have a "double slash" to properly escape the path separator in the config files
+            // the regex is escaped, and the replaced text has to be "double" escaped.
+            file.absolutePath.replace(regex, "\\\\\\\\")
+        } else {
+            file.absolutePath
+        }
+
+        return if (file.isDirectory && !(universal.endsWith("\\\\") || universal.endsWith('/'))) {
+            if (org.gradle.internal.os.OperatingSystem.current().isWindows) {
+                "$universal\\\\"
+            } else {
+                "$universal/"
+            }
+        } else {
+            universal
         }
     }
 }
