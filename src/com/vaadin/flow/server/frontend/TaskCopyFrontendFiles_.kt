@@ -5,9 +5,10 @@ import dorkbox.gradleVaadin.node.NodeInfo
 import java.io.File
 
 /**
- * flow-server-2.4.6
+ * flow-server-2.7.1
  */
 object TaskCopyFrontendFiles_ {
+    @Suppress("LocalVariableName")
     fun execute(projectDependencies: List<File>, nodeInfo: NodeInfo) {
         println("\tCopying jar/embedded resources...")
 
@@ -30,7 +31,11 @@ object TaskCopyFrontendFiles_ {
             val interiorPath = it.path
             val jarContainer = it.classpathElementFile
 
-            if (interiorPath.startsWith(Constants.RESOURCES_FRONTEND_DEFAULT) || interiorPath.startsWith(Constants.COMPATIBILITY_RESOURCES_FRONTEND_DEFAULT)) {
+            if (interiorPath.startsWith(Constants.RESOURCES_FRONTEND_DEFAULT) // "META-INF/frontend"
+                ||
+                interiorPath.startsWith(Constants.COMPATIBILITY_RESOURCES_FRONTEND_DEFAULT) // "META-INF/resources/frontend"
+            ) {
+
                 frontendLocations.add(jarContainer)
             }
         }
@@ -38,9 +43,12 @@ object TaskCopyFrontendFiles_ {
         classPathScanResult.close()
         /////////////////////
 
-        val targetDirectory = nodeInfo.createFrontendDir()
+        val flowTargetDirectory = nodeInfo.createFrontendDir()
 
-        println("\tCopying jar frontend resources to '$targetDirectory'")
+        val themeJarTargetDirectory = nodeInfo.frontendGeneratedDir
+
+        println("\tCopying jar frontend resources to '$flowTargetDirectory'")
+        println("\tCopying theme resources to '$themeJarTargetDirectory'")
 
         // get all jar files having files in the 'META-INF/frontend' or 'META-INF/resources/frontend' folder.
         println("\t\tFound ${frontendLocations.size} resources")
@@ -49,19 +57,42 @@ object TaskCopyFrontendFiles_ {
         }
 
         // copy jar resources
-        @Suppress("LocalVariableName")
-        val WILDCARD_INCLUSIONS = arrayOf("**/*.js", "**/*.css")
+
+        val WILDCARD_INCLUSIONS = arrayOf("**/*.js", "**/*.css", "**/*.ts")
+        val WILDCARD_INCLUSION_APP_THEME_JAR = "**/themes/**/*"
+
+
         val jarContentsManager = JarContentsManager()
         frontendLocations.forEach { location ->
-            jarContentsManager.copyIncludedFilesFromJarTrimmingBasePath(
-                location, Constants.RESOURCES_FRONTEND_DEFAULT,
-                targetDirectory, *WILDCARD_INCLUSIONS
-            )
+            if (location.isDirectory) {
+                TaskCopyLocalFrontendFiles.copyLocalResources(
+                    File(location, Constants.RESOURCES_FRONTEND_DEFAULT),
+                    flowTargetDirectory
+                )
+                TaskCopyLocalFrontendFiles.copyLocalResources(
+                    File(
+                        location,
+                        Constants.COMPATIBILITY_RESOURCES_FRONTEND_DEFAULT
+                    ),
+                    flowTargetDirectory
+                )
+            } else {
+                jarContentsManager.copyIncludedFilesFromJarTrimmingBasePath(
+                    location, Constants.RESOURCES_FRONTEND_DEFAULT, // "META-INF/frontend"
+                    flowTargetDirectory, *WILDCARD_INCLUSIONS
+                )
 
-            jarContentsManager.copyIncludedFilesFromJarTrimmingBasePath(
-                location, Constants.COMPATIBILITY_RESOURCES_FRONTEND_DEFAULT,
-                targetDirectory, *WILDCARD_INCLUSIONS
-            )
+                jarContentsManager.copyIncludedFilesFromJarTrimmingBasePath(
+                    location, Constants.COMPATIBILITY_RESOURCES_FRONTEND_DEFAULT, // "META-INF/resources/frontend"
+                    flowTargetDirectory, *WILDCARD_INCLUSIONS
+                )
+
+                jarContentsManager.copyIncludedFilesFromJarTrimmingBasePath(
+                    location, Constants.RESOURCES_JAR_DEFAULT, // "META-INF/resources/"
+                    themeJarTargetDirectory,
+                    WILDCARD_INCLUSION_APP_THEME_JAR
+                )
+            }
         }
 
         val ms = (System.nanoTime() - start) / 1000000

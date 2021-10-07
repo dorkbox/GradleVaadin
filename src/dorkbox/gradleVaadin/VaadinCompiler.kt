@@ -97,7 +97,9 @@ internal class VaadinCompiler(val project: Project) {
         // enablePackagesUpdate OR enableImportsUpdate
         println("\tGenerating web-components into ${nodeInfo.frontendGeneratedDir}")
         val gen = FrontendWebComponentGenerator(customClassFinder)
-        gen.generateWebComponents(nodeInfo.frontendGeneratedDir)
+        gen.generateWebComponents(nodeInfo.frontendGeneratedDir, frontendDependencies.themeDefinition)
+
+        TaskGenerateTsFiles_.execute(nodeInfo.buildDir, frontendDependencies.modules)
     }
 
     // dev
@@ -110,6 +112,7 @@ internal class VaadinCompiler(val project: Project) {
         // now we have to update the package.json file with whatever version of into we have specified on the classpath
         val packageUpdater = TaskUpdatePackages_.execute(customClassFinder, frontendDependencies, nodeInfo)
         TaskRunNpmInstall_.execute(customClassFinder, nodeInfo, packageUpdater)
+        TaskInstallWebpackPlugins_.execute(nodeInfo.nodeModulesDir)
     }
 
     // dev
@@ -141,6 +144,8 @@ internal class VaadinCompiler(val project: Project) {
         buildInfo.put(InitParameters.SERVLET_PARAMETER_ENABLE_PNPM, config.enablePnpm)
         buildInfo.put(InitParameters.SERVLET_PARAMETER_ENABLE_DEV_SERVER, !productionMode)
 
+        buildInfo.put(dorkbox.vaadin.util.VaadinConfig.DEBUG, config.debug)
+
         if (!productionMode) {
             // used for defining folder paths for dev server
 
@@ -149,7 +154,6 @@ internal class VaadinCompiler(val project: Project) {
             buildInfo.put(Constants.FRONTEND_TOKEN, nodeInfo.frontendDir.absolutePath)
         } else {
             // only applicable when in production mode
-
             buildInfo.put(dorkbox.vaadin.util.VaadinConfig.EXTRACT_JAR, config.extractJar) // matches vaadin application launcher
         }
 
@@ -170,6 +174,8 @@ internal class VaadinCompiler(val project: Project) {
     fun enableImportsUpdate() {
         val additionalFrontendModules = emptyList<String>() // TODO: get this from the plugin configuration
         TaskUpdateImports_.execute(nodeInfo, customClassFinder, frontendDependencies, additionalFrontendModules)
+
+        TaskUpdateThemeImport_.execute(nodeInfo, frontendDependencies.themeDefinition)
     }
 
 
@@ -225,6 +231,9 @@ internal class VaadinCompiler(val project: Project) {
 
         val ms = (System.nanoTime() - start) / 1000000
         println("\t\tFinished in $ms ms")
+
+        val statsJson = nodeInfo.vaadinStatsJsonFile
+        println("\t${statsJson.path}\n\tSize: ${statsJson.length().toDouble() / (1_000 * 1_000)} MB")
     }
 
     fun finish() {

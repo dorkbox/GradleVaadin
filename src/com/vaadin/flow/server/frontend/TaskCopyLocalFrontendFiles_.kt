@@ -3,7 +3,7 @@ package com.vaadin.flow.server.frontend
 import dorkbox.gradleVaadin.node.NodeInfo
 
 /**
- * flow-server-2.4.6
+ * flow-server-2.7.1
  */
 object TaskCopyLocalFrontendFiles_ {
     fun execute(nodeInfo: NodeInfo) {

@@ -7,7 +7,7 @@ import java.io.FileOutputStream
 
 
 /**
- * flow-server-2.4.6
+ * flow-server-2.7.1
  */
 object TaskUpdateWebpack_ {
     fun execute(nodeInfo: NodeInfo, customClassFinder: CustomClassFinder) {
@@ -29,13 +29,28 @@ object TaskUpdateWebpack_ {
                 )
             }
         } else {
-            val resource = this.javaClass.classLoader.getResource(FrontendUtils.WEBPACK_CONFIG)
-            resource?.openStream()?.copyTo(FileOutputStream(configFile))
-            Util.logger.info("Created webpack configuration file: $configFile")
+            // DO NOT copy the file from vaadin, copy our own file (since we customize where node_modules is located)
+            this.javaClass.classLoader.getResource("webpack.config.js")?.openStream().use {
+                if (it != null) {
+                    nodeInfo.origWebPackFile.apply {
+                        it.copyTo(FileOutputStream(this))
+                        println("\t\tCreated webpack config configuration file: $this")
+                    }
+                }
+            }
+
+            this.javaClass.classLoader.getResource("webpack.config.js")?.openStream().use {
+                if (it != null) {
+                    nodeInfo.origWebPackProdFile.apply {
+                        it.copyTo(FileOutputStream(this))
+                        println("\t\tCreated webpack production configuration file: $this")
+                    }
+                }
+            }
         }
 
-        JsonPackageTools.compareAndCopy(nodeInfo.origWebPackFile, nodeInfo.webPackFile)
-        JsonPackageTools.compareAndCopy(nodeInfo.origWebPackProdFile, nodeInfo.webPackProdFile)
+        Util.compareAndCopy(nodeInfo.origWebPackFile, nodeInfo.webPackFile)
+        Util.compareAndCopy(nodeInfo.origWebPackProdFile, nodeInfo.webPackProdFile)
 
 
 
@@ -60,7 +75,7 @@ object TaskUpdateWebpack_ {
                               "const frontendFolder = '$dirWebpack';"))
 
         // This *MUST* be the source frontend dir, RELATIVE to the GENERATED frontend directory!
-        val frontendFolder = JsonPackageTools.relativize(nodeInfo.frontendDestDir_WebPack, nodeInfo.frontendSourceDir_WebPack)
+        val frontendFolder = Util.relativize(nodeInfo.frontendDestDir_WebPack, nodeInfo.frontendSourceDir_WebPack)
         replacements.add(Pair("Frontend: frontendFolder",
                               "        Frontend: '$frontendFolder'"))
 
@@ -86,6 +101,25 @@ object TaskUpdateWebpack_ {
         val sourceMetaInfDir = Util.universalPath(nodeInfo.metaInfDir)
         replacements.add(Pair("contentBase: [mavenOutputFolderForFlowBundledFiles,",
                               "contentBase: [mavenOutputFolderForFlowBundledFiles, '$sourceMetaInfDir'],"))
+
+
+   // This *MUST* be the source frontend dir, RELATIVE to the GENERATED frontend directory!
+        //        val frontendFolder = Util.relativize(nodeInfo.frontendDestDir_WebPack, nodeInfo.frontendSourceDir_WebPack)
+        val flowFrontendDir =  Util.universalPath(nodeInfo.frontendGeneratedDir)
+        replacements.add(Pair("const flowFrontendFolder",
+                              "const flowFrontendFolder = '$flowFrontendDir'"))
+   // This *MUST* be the source frontend dir, RELATIVE to the GENERATED frontend directory!
+        //        val frontendFolder = Util.relativize(nodeInfo.frontendDestDir_WebPack, nodeInfo.frontendSourceDir_WebPack)
+        val resourcesDir =  Util.universalPath(nodeInfo.vaadinStaticDir)
+        replacements.add(Pair("const projectStaticAssetsOutputFolder",
+            "const projectStaticAssetsOutputFolder = '$resourcesDir'"))
+
+
+
+//        val frontendFolder = ("const flowFrontendFolder = require('path').resolve(__dirname, '"
+//                + getEscapedRelativeWebpackPath(flowResourcesFolder) + "');")
+//        val assetsResourceFolder = ("const projectStaticAssetsOutputFolder = require('path').resolve(__dirname, '"
+//                + getEscapedRelativeWebpackPath(resourceFolder) + "');")
 
 
         val lines = generatedFile.readLines(Charsets.UTF_8).toMutableList()

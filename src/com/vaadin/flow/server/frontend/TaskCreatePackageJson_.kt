@@ -6,7 +6,7 @@ import org.jetbrains.kotlin.gradle.internal.ensureParentDirsCreated
 import org.slf4j.Logger
 
 /**
- * flow-server-2.4.6
+ * flow-server-2.7.1
  */
 object TaskCreatePackageJson_ {
     fun execute(nodeInfo: NodeInfo) {
@@ -30,13 +30,9 @@ object TaskCreatePackageJson_ {
         JsonPackageTools.mergeJson(origJson, genJson)
         Util.disableVaadinStatistics(genJson)
 
-
         JsonPackageTools.writeJson(nodeInfo.buildDirJsonPackageFile, genJson)
 
-
-        val locationOfGeneratedJsonForFlowDependencies = nodeInfo.buildDir.resolve("frontend")
-
-        val task = object: TaskCreatePackageJson(nodeInfo.buildDir, locationOfGeneratedJsonForFlowDependencies) {
+        val task = object: TaskCreatePackageJson(nodeInfo.buildDir, nodeInfo.frontendGeneratedDir) {
             override fun log(): Logger {
                 return Util.logger
             }

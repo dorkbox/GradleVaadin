@@ -33,6 +33,9 @@ class NodeInfo(val project: Project) {
 
     val outputMetaInfDir = buildDir.resolve("resources").resolve("main").resolve("META-INF")
     val vaadinDir = outputMetaInfDir.resolve("resources").resolve("VAADIN")
+
+    val vaadinStatsJsonFile = vaadinDir.resolve(Constants.STATISTICS_JSON_DEFAULT)
+    val vaadinStaticDir = vaadinDir.resolve("static")
     val tokenFile = vaadinDir.resolve(FrontendUtils.TOKEN_FILE)
 
 

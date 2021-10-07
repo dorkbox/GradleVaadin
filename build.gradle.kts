@@ -24,7 +24,7 @@ plugins {
 
     id("com.dorkbox.Licensing") version "2.10"
     id("com.dorkbox.VersionUpdate") version "2.4"
-    id("com.dorkbox.GradleUtils") version "2.13"
+    id("com.dorkbox.GradleUtils") version "2.14"
 
     kotlin("jvm") version "1.5.21"
 }
@@ -33,7 +33,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to build Vaadin for use by the VaadinUndertow library"
     const val group = "com.dorkbox"
-    const val version = "14.1.4"
+    const val version = "14.7"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
@@ -46,10 +46,10 @@ object Extras {
     const val coroutineVer = "1.4.3"
     const val undertowVer = "2.2.10.Final"
 
-    // These MUST be in lock-step, otherwise horrific errors can occur.
-    const val vaadinVer = "14.4.8"
-    const val vaadinFlowVer = "2.4.6"
-    const val mavenVaadinGradleVer = "14.0" // this must match what is in VaadinConfig
+    // These MUST be in lock-step with VaadinConfig and the VaadinUndertow launcher, otherwise horrific errors can occur.
+    const val vaadinVer = "14.7.1"
+    const val vaadinFlowVer = "2.7.1"
+    const val mavenVaadinGradleVer = "14.7" // this must match what is in VaadinConfig
 
 }
 
@@ -87,6 +87,11 @@ dependencies {
 }
 
 tasks.jar.get().apply {
+    // include the webpack.*.js files
+    from("src") {
+        include("com/vaadin/flow/server/frontend/webpack.*.js")
+    }
+
     manifest {
         // https://docs.oracle.com/javase/tutorial/deployment/jar/packageman.html
         attributes["Name"] = Extras.name
@@ -98,11 +103,6 @@ tasks.jar.get().apply {
         attributes["Implementation-Title"] = "${Extras.group}.${Extras.id}"
         attributes["Implementation-Version"] = Extras.buildDate
         attributes["Implementation-Vendor"] = Extras.vendor
-    }
-
-    doLast {
-        val file = archiveFile.get().asFile
-        println("\t${file.path}\n\tSize: ${file.length().toDouble() / (1_000 * 1_000)} MB")
     }
 }
 

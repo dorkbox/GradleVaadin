@@ -18,6 +18,7 @@ package dorkbox.gradleVaadin
 import com.vaadin.flow.server.frontend.FrontendTools
 import com.vaadin.flow.server.frontend.FrontendUtils.*
 import dorkbox.gradleVaadin.node.npm.proxy.ProxySettings
+import dorkbox.vaadin.VaadinApplication
 import org.gradle.api.Project
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.Input
@@ -29,11 +30,10 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
         // we are locked to this version number! any change to this must reflect changes to our API, and how we access vaadin
         // so tests must be run to make sure our api is compatible with this release
         // https://vaadin.com/docs/v14/guide/install/frontend
-        const val VAADIN_VERSION = "14.4.8"
-        const val DEFAULT_NPM_VERSION = "6.14.10"
+        const val VAADIN_VERSION = VaadinApplication.vaadinVersion
 
-        // This must match what is in the build file!
-        const val MAVEN_VAADIN_GRADLE_VERSION = "14.0"
+        // This will always match what the build file imports!
+        const val MAVEN_VAADIN_GRADLE_VERSION = VaadinApplication.version
 
         const val NAME = "node"
 

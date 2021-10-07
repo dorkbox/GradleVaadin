@@ -27,6 +27,7 @@ import dorkbox.gradleVaadin.node.variant.VariantComputer
 import dorkbox.gradleVaadin.node.yarn.task.YarnInstallTask
 import dorkbox.gradleVaadin.node.yarn.task.YarnSetupTask
 import dorkbox.gradleVaadin.node.yarn.task.YarnTask
+import dorkbox.vaadin.VaadinApplication
 import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
@@ -41,16 +42,16 @@ import java.io.File
  *
  * NOTE: Vaadin css resources are compiled into the stats.json file, they are NOT loaded "statically" from the webserver
  */
-@Suppress("UnstableApiUsage", "unused", "SameParameterValue")
+@Suppress("UnstableApiUsage", "unused", "SameParameterValue", "ObjectLiteralToLambda")
 class Vaadin : Plugin<Project> {
     companion object {
-        const val NODE_GROUP = "Node"
-        const val NPM_GROUP = "npm"
-        const val YARN_GROUP = "Yarn"
+        internal const val NODE_GROUP = "Node"
+        internal const val NPM_GROUP = "npm"
+        internal const val YARN_GROUP = "Yarn"
 
-        const val SHUTDOW_TASK = "shutdownCompiler"
-        const val compileDevName = "vaadinDevelopment"
-        const val compileProdName = "vaadinProduction"
+        internal const val SHUTDOWN_TASK = "shutdownCompiler"
+        internal const val compileDevName = "vaadinDevelopment"
+        internal const val compileProdName = "vaadinProduction"
 
         /**
          * Recursively resolves all child dependencies of the project
@@ -86,6 +87,8 @@ class Vaadin : Plugin<Project> {
     private lateinit var project: Project
     private lateinit var config: VaadinConfig
 
+    /** Useful, so we can announce the version of vaadin we are using */
+    val version = VaadinApplication.vaadinVersion
 
     private fun newTask(dependencyTask: Task,
                         taskName: String,
@@ -96,14 +99,23 @@ class Vaadin : Plugin<Project> {
     }
 
     @Suppress("ObjectLiteralToLambda")
-    private fun newTask(dependencyTask: String,
+    private fun newTask(dependencyName: String,
                         taskName: String,
                         description: String,
                         inputs: TaskInputs.()->Unit = {},
                         action: Task.(vaadinCompiler: VaadinCompiler) -> Unit): Task {
+        return newTask(listOf(dependencyName), taskName, description, inputs, action)
+    }
+
+    private fun newTask(dependencyName: List<String>,
+                        taskName: String,
+                        description: String,
+                        inputs: TaskInputs.()->Unit = {},
+                        action: Task.(vaadinCompiler: VaadinCompiler) -> Unit): Task {
+
         return project.tasks.create(taskName).apply {
-            dependsOn(dependencyTask)
-            finalizedBy(SHUTDOW_TASK)
+            dependsOn(dependencyName.toTypedArray())
+            finalizedBy(SHUTDOWN_TASK)
 
             group = "vaadin"
             this.description = description
@@ -117,6 +129,8 @@ class Vaadin : Plugin<Project> {
             })
         }
     }
+
+
 
     override fun apply(project: Project) {
         this.project = project
@@ -145,7 +159,6 @@ class Vaadin : Plugin<Project> {
         addNpmRule()
         addYarnRule()
 
-
         project.gradle.taskGraph.whenReady(object: Action<TaskExecutionGraph> {
             override fun execute(graph: TaskExecutionGraph) {
                 // every other task will do nothing (run as dev mode).
@@ -160,6 +173,7 @@ class Vaadin : Plugin<Project> {
                 }
 
                 if (hasVaadinTask) {
+                    println("\tVaadin version: $version")
                     val jarTasks = allTasks.filter { it.name.endsWith("jar")}
 
                     if (jarTasks.isNotEmpty()) {
@@ -195,7 +209,7 @@ class Vaadin : Plugin<Project> {
             }
         }
 
-        project.tasks.create(SHUTDOW_TASK).apply {
+        project.tasks.create(SHUTDOWN_TASK).apply {
             doLast(object: Action<Task> {
                 override fun execute(t: Task) {
                     val vaadinCompiler = VaadinConfig[project].vaadinCompiler
@@ -206,7 +220,7 @@ class Vaadin : Plugin<Project> {
         }
 
         // NOTE! our class-scanner scans COMPILED CLASSES, so it is required to depend (at some point) on class compilation!
-        val generateWebComponents = newTask(NodeSetupTask.NAME, "generateWebComponents", "Generate Vaadin web components")
+        val generateWebComponents = newTask(listOf(NodeSetupTask.NAME, "classes"), "generateWebComponents", "Generate Vaadin web components")
         { vaadinCompiler ->
             VaadinConfig[project].vaadinCompiler.log()
             vaadinCompiler.generateWebComponents()
@@ -225,43 +239,6 @@ class Vaadin : Plugin<Project> {
         { vaadinCompiler ->
             vaadinCompiler.prepareJsonFiles()
         }
-//
-        /**
-         * Get if the stats.json file should be retrieved from an external service
-         * or through the classpath.
-         *
-         * @return true if stats.json is served from an external location
-         */
-//        default boolean isStatsExternal() {
-//            return getBooleanProperty(Constants.EXTERNAL_STATS_FILE, false);
-//        }
-// /**
-        //     * Get the url from where stats.json should be retrieved from. If not given
-        //     * this will default to '/vaadin-static/VAADIN/config/stats.json'
-        //     *
-        //     * @return external stats.json location
-        //     */
-        //    default String getExternalStatsUrl() {
-        //        return getStringProperty(Constants.EXTERNAL_STATS_URL,
-        //                Constants.DEFAULT_EXTERNAL_STATS_URL);
-        //    }
-
-
-        // private static InputStream getStatsFromClassPath(VaadinService service) {
-        //        String stats = service.getDeploymentConfiguration()
-        //                .getStringProperty(SERVLET_PARAMETER_STATISTICS_JSON,
-        //                        VAADIN_SERVLET_RESOURCES + STATISTICS_JSON_DEFAULT)
-        //                // Remove absolute
-        //                .replaceFirst("^/", "");
-        //        InputStream stream = service.getClassLoader()
-        //                .getResourceAsStream(stats);
-        //        if (stream == null) {
-        //            getLogger().error(
-        //                    "Cannot get the 'stats.json' from the classpath '{}'",
-        //                    stats);
-        //        }
-        //        return stream;
-        //    }
 
         val copyJarResources = newTask(prepareJsonFiles, "copyJarResources", "Compile Vaadin resources for Production")
         { vaadinCompiler ->
@@ -314,7 +291,7 @@ class Vaadin : Plugin<Project> {
 
         project.tasks.create(compileDevName).apply {
             dependsOn(createTokenFile)
-            finalizedBy(SHUTDOW_TASK)
+            finalizedBy(SHUTDOWN_TASK)
 
             group = "vaadin"
             description = "Compile Vaadin resources for Development"
@@ -322,31 +299,31 @@ class Vaadin : Plugin<Project> {
             outputs.cacheIf { false }
             outputs.upToDateWhen { false }
 
-//            inputs.files(
-//                "${project.projectDir}/package.json",
-//                "${project.projectDir}/package-lock.json",
-//                "${project.projectDir}/webpack.config.js",
-//                "${project.projectDir}/webpack.production.js"
-//            )
-//
-//            outputs.dir("${project.buildDir}/config")
-//            outputs.dir("${project.buildDir}/resources")
-//
-//            outputs.dir("${project.buildDir}/nodejs")
-//            outputs.dir("${project.buildDir}/node_modules")
+            inputs.files(
+                "${project.projectDir}/package.json",
+                "${project.projectDir}/package-lock.json",
+                "${project.projectDir}/webpack.config.js",
+                "${project.projectDir}/webpack.production.js"
+            )
+
+            outputs.dir("${project.buildDir}/config")
+            outputs.dir("${project.buildDir}/resources")
+
+            outputs.dir("${project.buildDir}/nodejs")
+            outputs.dir("${project.buildDir}/node_modules")
         }
 
 
         project.tasks.create(compileProdName).apply {
             dependsOn(generateWebPack)
-            finalizedBy(SHUTDOW_TASK)
+            finalizedBy(SHUTDOWN_TASK)
 
             group = "vaadin"
             description = "Compile Vaadin resources for Production"
 
             outputs.cacheIf { false }
             outputs.upToDateWhen { false }
-//
+
 //            inputs.files(
 //                "${project.projectDir}/package.json",
 //                "${project.projectDir}/package-lock.json",
@@ -357,6 +334,12 @@ class Vaadin : Plugin<Project> {
 //            outputs.dir("${project.buildDir}/resources/main/META-INF/resources/VAADIN")
 //            outputs.dir("${project.buildDir}/node_modules")
         }
+
+        project.tasks.withType(Jar::class.java) {
+            // we ALWAYS want to make sure that this task runs when jar files are created (since we consider a jar to be the final production package for this project
+            it.dependsOn(compileProdName)
+        }
+
 
 //        config.addSubprojects()
 
