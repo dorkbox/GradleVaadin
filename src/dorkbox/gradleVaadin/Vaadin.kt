@@ -173,7 +173,6 @@ class Vaadin : Plugin<Project> {
                 }
 
                 if (hasVaadinTask) {
-                    println("\tVaadin version: $version")
                     val jarTasks = allTasks.filter { it.name.endsWith("jar")}
 
                     if (jarTasks.isNotEmpty()) {

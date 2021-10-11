@@ -87,6 +87,8 @@ internal class VaadinCompiler(val project: Project) {
 
             println("\t\tJsonPackageFile: ${nodeInfo.jsonPackageFile}")
             println("\t\tJsonPackage generated file: ${nodeInfo.buildDirJsonPackageFile}")
+        } else {
+            println("\t\tVaadin version: ${VaadinConfig.VAADIN_VERSION}")
         }
     }
 
