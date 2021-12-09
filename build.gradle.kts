@@ -33,7 +33,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to build Vaadin for use by the VaadinUndertow library"
     const val group = "com.dorkbox"
-    const val version = "14.7.1"
+    const val version = "14.7.3"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
@@ -44,12 +44,13 @@ object Extras {
     val buildDate = Instant.now().toString()
 
     const val coroutineVer = "1.4.3"
-    const val undertowVer = "2.2.10.Final"
 
-    // These MUST be in lock-step with VaadinConfig and the VaadinUndertow launcher, otherwise horrific errors can occur.
-    const val vaadinVer = "14.7.1"
-    const val vaadinFlowVer = "2.7.1"
-    const val mavenVaadinGradleVer = "14.7" // this must match what is in VaadinConfig
+    const val vaadinUndertowVer = "14.7.3"
+
+    // These MUST be in lock-step with what the VaadinUndertow launcher defines, otherwise horrific errors can occur.
+    const val undertowVer = "2.2.14.Final"
+    const val vaadinVer = "14.7.8"
+    const val vaadinFlowVer = "2.7.6"
 
 }
 
@@ -81,7 +82,7 @@ dependencies {
     //  implementation("com.vaadin:vaadin:${Extras.vaadinVer}") // NOTE: uncomment for testing ONLY
     implementation("com.vaadin:flow-server:${Extras.vaadinFlowVer}")
 
-    implementation("com.dorkbox:VaadinUndertow:${Extras.mavenVaadinGradleVer}") // this must match what is in VaadinConfig
+    implementation("com.dorkbox:VaadinUndertow:${Extras.vaadinUndertowVer}")
     implementation("com.dorkbox:Executor:3.4")
     implementation("com.dorkbox:Version:2.4")
 }

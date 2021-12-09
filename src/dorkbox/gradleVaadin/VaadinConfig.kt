@@ -31,6 +31,8 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
         // so tests must be run to make sure our api is compatible with this release
         // https://vaadin.com/docs/v14/guide/install/frontend
         const val VAADIN_VERSION = VaadinApplication.vaadinVersion
+        const val UNDERTOW_VERSION = VaadinApplication.undertowVersion
+
 
         // This will always match what the build file imports!
         const val MAVEN_VAADIN_GRADLE_VERSION = VaadinApplication.version
