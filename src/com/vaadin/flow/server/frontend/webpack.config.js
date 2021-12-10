@@ -25,6 +25,7 @@
  * </code>
  */
 
+const TerserPlugin = require('terser-webpack-plugin')
 const merge = require('webpack-merge');
 const flowDefaults = require('./webpack.generated.js');
 const path = require('path');
@@ -46,6 +47,13 @@ module.exports = merge(flowDefaults,
         resolve: {
             modules: [npmPath, modulesPath],
         },
+        optimization: {
+            // the UglifyJS minimizer is TERRIBLE. This offers better performance and robustness
+            // v5 of webpack changes the default to Terser, so once vaadin updates to v5, this can be removed.
+            // https://github.com/webpack-contrib/terser-webpack-plugin/issues/15
+            minimizer: [new TerserPlugin()]
+        },
+
 
         // here is where all of our plugins are configured
         // plugins: [
