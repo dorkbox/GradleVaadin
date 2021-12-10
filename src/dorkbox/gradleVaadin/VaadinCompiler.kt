@@ -22,33 +22,16 @@ import java.io.File
 internal class VaadinCompiler(val project: Project) {
     private val config = VaadinConfig[project]
 
-    // REGARDING the current version of polymer.
-    // see: com.vaadin.flow.server.frontend.NodeUpdater.updateMainDefaultDependencies
-    val polymerVersion = "3.2.0"
+    val polymerVersion = Util.POLYMER_VERSION
 
     val nodeInfo by lazy { NodeInfo(project) }
 
-    //    ext.vaadin_charts_license = "00df96cb-e8da-4111-8e72-e3a1fc8b394b"       // registered to ajraman@net-ref.com
-    //ext.vaadin_spreadsheets_license = "bc7e7ea0-3068-471d-ac3f-cbfe7be4d7ec" // registered to ajraman@net-ref.com
-    //     // vaadin charts/spreadsheets licenses
-    //                "-Dvaadin.charts.developer.license=$vaadin_charts_license",
-    //                "-Dvaadin.spreadsheet.developer.license=$vaadin_spreadsheets_license",]
-    //    -Dvaadin.proKey=[pro-key-string]
-
-
-    // The default configuration extends from the runtime configuration, which means that it contains all the dependencies and artifacts of the runtime configuration, and potentially more.
-    // THIS MUST BE IN "afterEvaluate".
-    // Using the "runtime" classpath (weirdly) DOES NOT WORK. Only "default" works.
-
-    //    val projectDependencies = resolve(project.configurations["default"]).map { it.file }
     val projectDependencies by lazy {
         Vaadin.resolveRuntimeDependencies(project).dependencies
             .flatMap { dep ->
                 dep.artifacts.map { artifact -> artifact.file }
             }
     }
-
-    //    val projectDependencies = resolve(project.configurations["default"]).map { it.file }
 
     val customClassFinder by lazy {
         val sourceSets = project.extensions.getByName("sourceSets") as SourceSetContainer

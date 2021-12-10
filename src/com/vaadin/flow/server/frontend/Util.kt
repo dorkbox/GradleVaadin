@@ -17,6 +17,10 @@ import java.security.NoSuchAlgorithmException
  *
  */
 object Util {
+    // REGARDING the current version of polymer.
+    // see: com.vaadin.flow.server.frontend.NodeUpdater
+    val POLYMER_VERSION = NodeUpdater.POLYMER_VERSION
+
     val logger = ConsoleLog(messagePreface = "\t\t")
 
     val MODULES_YAML = ".modules.yaml";
