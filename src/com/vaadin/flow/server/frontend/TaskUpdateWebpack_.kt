@@ -100,26 +100,18 @@ object TaskUpdateWebpack_ {
         // NOTE: new stuff. Change 'src/main/webapp' -> 'webapp' (or META-INF? which is where all static resources are served...)
         val sourceMetaInfDir = Util.universalPath(nodeInfo.metaInfDir)
         replacements.add(Pair("contentBase: [mavenOutputFolderForFlowBundledFiles,",
-                              "contentBase: [mavenOutputFolderForFlowBundledFiles, '$sourceMetaInfDir'],"))
+                              "    contentBase: [mavenOutputFolderForFlowBundledFiles, '$sourceMetaInfDir'],"))
 
 
-   // This *MUST* be the source frontend dir, RELATIVE to the GENERATED frontend directory!
-        //        val frontendFolder = Util.relativize(nodeInfo.frontendDestDir_WebPack, nodeInfo.frontendSourceDir_WebPack)
+        // This *MUST* be the source frontend dir, RELATIVE to the GENERATED frontend directory!
         val flowFrontendDir =  Util.universalPath(nodeInfo.frontendGeneratedDir)
         replacements.add(Pair("const flowFrontendFolder",
                               "const flowFrontendFolder = '$flowFrontendDir'"))
-   // This *MUST* be the source frontend dir, RELATIVE to the GENERATED frontend directory!
-        //        val frontendFolder = Util.relativize(nodeInfo.frontendDestDir_WebPack, nodeInfo.frontendSourceDir_WebPack)
+
+        // This *MUST* be the source frontend dir, RELATIVE to the GENERATED frontend directory!
         val resourcesDir =  Util.universalPath(nodeInfo.vaadinStaticDir)
         replacements.add(Pair("const projectStaticAssetsOutputFolder",
-            "const projectStaticAssetsOutputFolder = '$resourcesDir'"))
-
-
-
-//        val frontendFolder = ("const flowFrontendFolder = require('path').resolve(__dirname, '"
-//                + getEscapedRelativeWebpackPath(flowResourcesFolder) + "');")
-//        val assetsResourceFolder = ("const projectStaticAssetsOutputFolder = require('path').resolve(__dirname, '"
-//                + getEscapedRelativeWebpackPath(resourceFolder) + "');")
+                              "const projectStaticAssetsOutputFolder = '$resourcesDir'"))
 
 
         val lines = generatedFile.readLines(Charsets.UTF_8).toMutableList()
@@ -128,6 +120,7 @@ object TaskUpdateWebpack_ {
 
             val hasReplacement = replacements.firstOrNull { line.startsWith(it.first) }
             if (hasReplacement != null) {
+                replacements.removeIf { it == hasReplacement } // only do a SINGLE replacement for this entry.
                 lines[i] = hasReplacement.second
             }
         }
