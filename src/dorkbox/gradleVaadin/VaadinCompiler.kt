@@ -185,12 +185,13 @@ internal class VaadinCompiler(val project: Project) {
         val process = nodeInfo.nodeExeAsync {
             this.workingDirectory(nodeInfo.buildDir)
                 .addArg(webPackExecutableFile.path, "--config", nodeInfo.webPackProdFile.path)
+                .addArg("--display-error-details")
             this.environment["NO_UPDATE_NOTIFIER"] = "1"
-//            this.addArg("--scripts-prepend-node-path")
 
             if (!debug) {
                 this.addArg("--silent")
             } else {
+                this.addArg("--progress")
                 this.enableRead()
                 Util.execDebug(this)
             }
@@ -200,6 +201,7 @@ internal class VaadinCompiler(val project: Project) {
         val output = process.output
         val result = runBlocking {
             if (debug) {
+                println("\tGathering webpack output...")
                 launch {
                     while (output.isOpen) {
                         print(output.utf8())
