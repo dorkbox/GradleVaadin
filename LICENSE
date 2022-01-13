@@ -1,7 +1,7 @@
  - GradleVaadin - Gradle Plugin to build Vaadin for use by the VaadinUndertow library
    [The Apache Software License, Version 2.0]
    https://git.dorkbox.com/dorkbox/GradleVaadin
-   Copyright 2021
+   Copyright 2022
      Dorkbox LLC
 
    Extra license information
@@ -16,19 +16,19 @@
      - kotlinx.coroutines - Library support for Kotlin coroutines with multiplatform support
        [The Apache Software License, Version 2.0]
        https://github.com/Kotlin/kotlinx.coroutines
-       Copyright 2021
+       Copyright 2022
          JetBrains s.r.o.
 
      - ClassGraph - An uber-fast parallelized Java classpath scanner and module scanner
        [The Apache Software License, Version 2.0]
        https://github.com/classgraph/classgraph
-       Copyright 2021
+       Copyright 2022
          Luke Hutchison
 
      - Vaadin - An open platform for building modern web apps for Java back ends
        [The Apache Software License, Version 2.0]
        https://github.com/vaadin/
-       Copyright 2021
+       Copyright 2022
          Vaadin Ltd.
 
      - VaadinUndertow - Vaadin support for the Undertow web server
