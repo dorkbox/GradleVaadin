@@ -14,6 +14,7 @@ import dorkbox.gradleVaadin.node.variant.VariantComputer
 import elemental.json.Json
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
+import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.tasks.*
@@ -35,8 +36,6 @@ abstract class NodeSetupTask : DefaultTask() {
     @get:Inject
     abstract val providers: ProviderFactory
 
-    @get:InputFile
-    val nodeArchiveFile = objects.fileProperty()
 
     // This crashes on linux! SUPER ODD...
 //    @get:OutputDirectory
@@ -49,6 +48,7 @@ abstract class NodeSetupTask : DefaultTask() {
     private val debug by lazy { vaadinConfig.debug }
 
     private val nodeInfo by lazy { NodeInfo(project) }
+    private val nodeArchiveFile = objects.fileProperty()
 
     private val nodeExec by lazy { nodeInfo.nodeBinExec}
     private val npmExec by lazy { VariantComputer.computeNpmExec(vaadinConfig) }
@@ -91,6 +91,7 @@ abstract class NodeSetupTask : DefaultTask() {
 
 
         if (!installNodeOK) {
+            downloadNode()
             deleteExistingNode()
             unpackNodeArchive()
             renameDirectory()
@@ -123,6 +124,28 @@ abstract class NodeSetupTask : DefaultTask() {
 
         if (enablePnpm) {
             println("\tpNPM info: $detectedPNpmVersion [$pNpmScript]")
+        }
+    }
+
+    private fun downloadNode() {
+        try {
+            if (vaadinConfig.download.get()) {
+                println("\t Downloading Node v${vaadinConfig.nodeVersion} (${VariantComputer.osName}-${VariantComputer.osArch})")
+                vaadinConfig.distBaseUrl.orNull?.let { addNodeRepository(project, it) }
+
+                val nodeArchiveDependency = VariantComputer.computeNodeArchiveDependency(vaadinConfig)
+                // download the node archive.
+                val archiveFileProvider = resolveNodeArchiveFile(project, nodeArchiveDependency)
+
+                val provider = project.objects.fileProperty().apply {
+                    set(archiveFileProvider)
+                }.asFile
+
+                nodeArchiveFile.set(project.layout.file(provider))
+            }
+        } catch (e: Exception) {
+            println("Unable to configure NodeJS repository: ${vaadinConfig.nodeVersion}")
+            e.printStackTrace()
         }
     }
 
@@ -434,5 +457,29 @@ abstract class NodeSetupTask : DefaultTask() {
                 jsonLockFileTemp.renameTo(jsonLockFile)
             }
         }
+    }
+
+
+    private fun addNodeRepository(project: Project, distUrl: String) {
+        project.repositories.ivy {
+            it.name = "Node.js"
+            it.setUrl(distUrl)
+            it.patternLayout { t ->
+                t.artifact("[revision]/[artifact](-[revision]-[classifier]).[ext]")
+            }
+            it.metadataSources { t ->
+                t.artifact()
+            }
+            it.content { t ->
+                t.includeModule("org.nodejs", "node")
+            }
+        }
+    }
+
+    private fun resolveNodeArchiveFile(project: Project, name: String): File {
+        val dependency = project.dependencies.create(name)
+        val configuration = project.configurations.detachedConfiguration(dependency)
+        configuration.isTransitive = false
+        return configuration.resolve().single()
     }
 }

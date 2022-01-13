@@ -11,9 +11,10 @@ import java.io.File
 object VariantComputer {
     private val platformHelper: PlatformHelper = PlatformHelper.INSTANCE
 
+    val osName = platformHelper.osName
+    val osArch = platformHelper.osArch
+
     fun computeExtractionName(vaadinConfig: VaadinConfig): String {
-        val osName = platformHelper.osName
-        val osArch = platformHelper.osArch
         return "node-${vaadinConfig.nodeVersion}-$osName-$osArch"
     }
 
@@ -118,29 +119,6 @@ object VariantComputer {
         }
     }
 
-    fun computeYarnDir(vaadinConfig: VaadinConfig): Provider<Directory> {
-        return zip(vaadinConfig.yarnVersion, vaadinConfig.yarnDir).map {
-            val (yarnVersion, yarnWorkDir) = it
-            val dirnameSuffix = if (yarnVersion.isNotBlank()) {
-                "-v${yarnVersion}"
-            } else "-latest"
-            val dirname = "yarn$dirnameSuffix"
-            yarnWorkDir.dir(dirname)
-        }
-    }
-
-    fun computeYarnBinDir(yarnDirProvider: Provider<Directory>) = computeProductBinDir(yarnDirProvider)
-
-    fun computeYarnExec(vaadinConfig: VaadinConfig, yarnBinDirProvider: Provider<Directory>): Provider<String> {
-        return zip(vaadinConfig.yarnCommand, vaadinConfig.download, yarnBinDirProvider).map {
-            val (yarnCommand, download, yarnBinDir) = it
-            val command = if (platformHelper.isWindows) {
-                yarnCommand.mapIf({ it == "yarn" }) { "yarn.cmd" }
-            } else yarnCommand
-            if (download) yarnBinDir.dir(command).asFile.absolutePath else command
-        }
-    }
-
     private fun computeProductBinDir(productDirProvider: Provider<Directory>) =
             if (platformHelper.isWindows) productDirProvider else productDirProvider.map { it.dir("bin") }
 
@@ -148,8 +126,6 @@ object VariantComputer {
             if (platformHelper.isWindows) productDirProvider else productDirProvider.resolve("bin")
 
     fun computeNodeArchiveDependency(vaadinConfig: VaadinConfig): String {
-        val osName = platformHelper.osName
-        val osArch = platformHelper.osArch
         val type = if (platformHelper.isWindows) "zip" else "tar.gz"
 
         return "org.nodejs:node:${vaadinConfig.nodeVersion}:$osName-$osArch@$type"

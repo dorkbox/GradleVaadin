@@ -88,6 +88,16 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
     set(value) { debug_.set(value)}
 
     /**
+     * Adds "NODE_OPTIONS" to the environment when launching node.js
+     */
+    @get:Input
+    protected var nodeJsOptions_ = project.objects.property(String::class.java).convention("")
+    var nodeOptions: String
+        get() { return nodeJsOptions_.get() }
+        set(value) { nodeJsOptions_.set(value)}
+
+
+    /**
      * Used by the custom vaadin application launcher.
      * When building a production jar, to extract the contents of the jar or not
      * Usually -- for performance reasons, you want it to "self extract" the jar. For rapid testing, you don't always want this.
@@ -151,31 +161,12 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
      */
     @get:Input
     var pnpmVersion = FrontendTools.DEFAULT_PNPM_VERSION
-//    set(value) {
-//        field = value
-//        NodeExtension[project].version.set(value)
-//    }
-
-    // undertowVersion
 
     @get:Input
     var workDir = project.buildDir
-        set(value) {
-            field = value
-//            NodeExtension[project].test.set(value)
-        }
 
 
     internal val vaadinCompiler by lazy {  VaadinCompiler(project) }
-//    internal fun init() {
-//        println("\tInitializing the vaadin compiler")
-//    }
-
-
-
-
-
-
 
 
 
@@ -227,27 +218,12 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
         set(value) { npmDir__.set(value)}
 
 
-
-    /**
-     * The directory where yarn is installed (when a Yarn task is used)
-     */
-    val yarnDir_ = project.objects.directoryProperty()
-    internal var yarnDir: DirectoryProperty
-        get() {
-            if (!yarnDir_.isPresent) {
-                yarnDir_.set(buildDir__.dir("yarn"))
-            }
-            return yarnDir_
-        }
-        set(value) { yarnDir_.set(value)}
-
-
     /**
      * Version of node to download and install (only used if download is true)
      * It will be unpacked in the workDir
      */
     @get:Input
-    protected val nodeVersion_ = project.objects.property(String::class.java).convention(FrontendTools.DEFAULT_NODE_VERSION)
+    protected val nodeVersion_ = project.objects.property(String::class.java).convention("16.13.1")
     var nodeVersion: String
         get() { return nodeVersion_.get().let {
             if (it.lowercase(Locale.getDefault()).startsWith('v')) {
@@ -265,12 +241,6 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
      */
     val npmVersion = project.objects.property(String::class.java).convention("")
 
-    /**
-     * Version of Yarn to use
-     * Any Yarn task first installs Yarn in the yarnWorkDir
-     * It uses the specified version if defined and the latest version otherwise (by default)
-     */
-    val yarnVersion = project.objects.property(String::class.java).convention("")
 
     /**
      * Base URL for fetching node distributions
@@ -282,7 +252,7 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
 
     val npmCommand = project.objects.property(String::class.java).convention("npm")
     val npxCommand = project.objects.property(String::class.java).convention("npx")
-    val yarnCommand = project.objects.property(String::class.java).convention("yarn")
+
 
     /**
      * The npm command executed by the npmInstall task

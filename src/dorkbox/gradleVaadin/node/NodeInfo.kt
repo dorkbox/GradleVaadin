@@ -27,6 +27,7 @@ class NodeInfo(val project: Project) {
 
 
     val debug = config.debug
+    private val nodeOptions = config.nodeOptions
 
 
     val metaInfDir = sourceDir.resolve("resources").resolve("META-INF")
@@ -97,8 +98,6 @@ class NodeInfo(val project: Project) {
     val nodeModulesDir = nodeJsDir.parentFile.resolve("node_modules")
 
     val npmDirProvider = VariantComputer.computeNpmDir(config, nodeDirProvider)
-    val npmBinDirProvider = VariantComputer.computeNpmBinDir(npmDirProvider)
-
 
     val npmScript by lazy { VariantComputer.computeNpmScriptFile(nodeDirProvider, "npm") }
 
@@ -120,11 +119,16 @@ class NodeInfo(val project: Project) {
             .environment("ADBLOCK", "1")
             .useSystemEnvironment()
 
+
+        if (nodeOptions.isNotEmpty()) {
+            exe.environment["NODE_OPTIONS"] = nodeOptions
+        }
+
         Util.addPath(exe.environment, nodeBinDir.path)
 
         config(exe)
 
-        return exe.startBlocking()
+        return exe.startAsShellBlocking()
     }
 
     fun nodeExeAsync(config: Executor.() -> Unit): DeferredProcessResult {
@@ -133,6 +137,10 @@ class NodeInfo(val project: Project) {
 //            .workingDirectory(File(nodeBinExec).parent)
             .environment("ADBLOCK", "1")
             .useSystemEnvironment()
+
+        if (nodeOptions.isNotEmpty()) {
+            exe.environment["NODE_OPTIONS"] = nodeOptions
+        }
 
         Util.addPath(exe.environment, nodeBinDir.path)
 
@@ -147,6 +155,10 @@ class NodeInfo(val project: Project) {
 //            .workingDirectory(File(nodeBinExec).parent)
             .environment("ADBLOCK", "1")
             .useSystemEnvironment()
+
+        if (nodeOptions.isNotEmpty()) {
+            exe.environment["NODE_OPTIONS"] = nodeOptions
+        }
 
         Util.addPath(exe.environment, nodeBinDir.path)
 
@@ -168,7 +180,11 @@ class NodeInfo(val project: Project) {
             .addArg(npmScript)
             .useSystemEnvironment()
 
-            Util.addPath(exe.environment, nodeBinDir.path)
+        if (nodeOptions.isNotEmpty()) {
+            exe.environment["NODE_OPTIONS"] = nodeOptions
+        }
+
+        Util.addPath(exe.environment, nodeBinDir.path)
 
         config(exe)
 

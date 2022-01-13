@@ -24,9 +24,6 @@ import dorkbox.gradleVaadin.node.npm.task.NpxTask
 import dorkbox.gradleVaadin.node.task.NodeSetupTask
 import dorkbox.gradleVaadin.node.task.NodeTask
 import dorkbox.gradleVaadin.node.variant.VariantComputer
-import dorkbox.gradleVaadin.node.yarn.task.YarnInstallTask
-import dorkbox.gradleVaadin.node.yarn.task.YarnSetupTask
-import dorkbox.gradleVaadin.node.yarn.task.YarnTask
 import dorkbox.vaadin.VaadinApplication
 import org.gradle.api.Action
 import org.gradle.api.Plugin
@@ -161,7 +158,6 @@ class Vaadin : Plugin<Project> {
         addGlobalTypes()
         addTasks()
         addNpmRule()
-        addYarnRule()
 
         project.gradle.taskGraph.whenReady(object: Action<TaskExecutionGraph> {
             override fun execute(graph: TaskExecutionGraph) {
@@ -189,28 +185,6 @@ class Vaadin : Plugin<Project> {
                 }
             }
         })
-
-        project.afterEvaluate { proj ->
-            try {
-                if (config.download.get()) {
-                    config.distBaseUrl.orNull?.let { addNodeRepository(it) }
-
-                    val nodeArchiveDependency = VariantComputer.computeNodeArchiveDependency(config)
-                    val archiveFileProvider = resolveNodeArchiveFile(nodeArchiveDependency)
-
-                    proj.tasks.named(NodeSetupTask.NAME, NodeSetupTask::class.java) { nodeTask ->
-                        val provider = proj.objects.fileProperty().apply {
-                            set(archiveFileProvider)
-                        }.asFile
-
-                        nodeTask.nodeArchiveFile.set(proj.layout.file(provider))
-                    }
-                }
-            } catch (e: Exception) {
-                println("Unable to configure NodeJS repository: ${config.nodeVersion}")
-                e.printStackTrace()
-            }
-        }
 
         project.tasks.create(SHUTDOWN_TASK).apply {
             doLast(object: Action<Task> {
@@ -368,7 +342,6 @@ class Vaadin : Plugin<Project> {
         addGlobalType<NodeTask>()
         addGlobalType<NpmTask>()
         addGlobalType<NpxTask>()
-        addGlobalType<YarnTask>()
         addGlobalType<ProxySettings>()
     }
 
@@ -378,10 +351,8 @@ class Vaadin : Plugin<Project> {
 
     private fun addTasks() {
         project.tasks.register(NpmInstallTask.NAME, NpmInstallTask::class.java)
-        project.tasks.register(YarnInstallTask.NAME, YarnInstallTask::class.java)
         project.tasks.register(NodeSetupTask.NAME, NodeSetupTask::class.java)
         project.tasks.register(NpmSetupTask.NAME, NpmSetupTask::class.java)
-        project.tasks.register(YarnSetupTask.NAME, YarnSetupTask::class.java)
     }
 
     private fun addNpmRule() { // note this rule also makes it possible to specify e.g. "dependsOn npm_install"
@@ -396,42 +367,5 @@ class Vaadin : Plugin<Project> {
                 }
             }
         }
-    }
-
-    private fun addYarnRule() { // note this rule also makes it possible to specify e.g. "dependsOn yarn_install"
-        project.tasks.addRule("Pattern: \"yarn_<command>\": Executes an Yarn command.") { taskName ->
-            if (taskName.startsWith("yarn_")) {
-                project.tasks.create(taskName, YarnTask::class.java) {
-                    val tokens = taskName.split("_").drop(1) // all except first
-                    it.yarnCommand.set(tokens)
-                    if (tokens.first().equals("run", ignoreCase = true)) {
-                        it.dependsOn(YarnInstallTask.NAME)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun addNodeRepository(distUrl: String) {
-        project.repositories.ivy {
-            it.name = "Node.js"
-            it.setUrl(distUrl)
-            it.patternLayout { t ->
-                t.artifact("[revision]/[artifact](-[revision]-[classifier]).[ext]")
-            }
-            it.metadataSources { t ->
-                t.artifact()
-            }
-            it.content { t ->
-                t.includeModule("org.nodejs", "node")
-            }
-        }
-    }
-
-    private fun resolveNodeArchiveFile(name: String): File {
-        val dependency = project.dependencies.create(name)
-        val configuration = project.configurations.detachedConfiguration(dependency)
-        configuration.isTransitive = false
-        return configuration.resolve().single()
     }
 }
