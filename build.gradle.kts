@@ -22,7 +22,7 @@ plugins {
 
     id("com.gradle.plugin-publish") version "0.14.0"
 
-    id("com.dorkbox.Licensing") version "2.11"
+    id("com.dorkbox.Licensing") version "2.12"
     id("com.dorkbox.VersionUpdate") version "2.4"
     id("com.dorkbox.GradleUtils") version "2.16"
 
@@ -33,7 +33,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to build Vaadin for use by the VaadinUndertow library"
     const val group = "com.dorkbox"
-    const val version = "14.7.5"
+    const val version = "14.7.5-2"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
@@ -43,7 +43,7 @@ object Extras {
     val tags = listOf("vaadin", "undertow")
     val buildDate = Instant.now().toString()
 
-    const val coroutineVer = "1.4.3"
+    const val coroutineVer = "1.6.0"
 
     const val vaadinUndertowVer = "14.7.3"
 
@@ -83,7 +83,7 @@ dependencies {
     implementation("com.vaadin:flow-server:${Extras.vaadinFlowVer}")
 
     implementation("com.dorkbox:VaadinUndertow:${Extras.vaadinUndertowVer}")
-    implementation("com.dorkbox:Executor:3.5")
+    implementation("com.dorkbox:Executor:3.6")
     implementation("com.dorkbox:Version:2.4")
 }
 
