@@ -175,7 +175,7 @@ internal class VaadinCompiler(val project: Project) {
     // production
     fun generateWebPack() {
         val webPackExecutableFile = nodeInfo.webPackExecutableFile
-        val debug = nodeInfo.debug
+        val debug = nodeInfo.debugNodeJS
 
         val start = System.nanoTime()
 
@@ -192,6 +192,7 @@ internal class VaadinCompiler(val project: Project) {
                 this.addArg("--silent")
             } else {
                 this.addArg("--progress")
+                this.defaultLogger()
                 this.enableRead()
                 Util.execDebug(this)
             }

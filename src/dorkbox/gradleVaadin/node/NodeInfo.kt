@@ -27,6 +27,9 @@ class NodeInfo(val project: Project) {
 
 
     val debug = config.debug
+    val debugNodeJS = config.debugNodeJs
+
+
     private val nodeOptions = config.nodeOptions
 
 
@@ -146,7 +149,7 @@ class NodeInfo(val project: Project) {
 
         config(exe)
 
-        return exe.startAsync()
+        return exe.startAsShellAsync()
     }
 
     fun nodeExeOutput(config: Executor.() -> Unit): String {
@@ -180,6 +183,7 @@ class NodeInfo(val project: Project) {
             .addArg(npmScript)
             .useSystemEnvironment()
 
+
         if (nodeOptions.isNotEmpty()) {
             exe.environment["NODE_OPTIONS"] = nodeOptions
         }
@@ -188,7 +192,7 @@ class NodeInfo(val project: Project) {
 
         config(exe)
 
-        return exe.startBlocking()
+        return exe.startAsShellBlocking()
     }
 
     fun npmExeOutput(config: Executor.() -> Unit): String {

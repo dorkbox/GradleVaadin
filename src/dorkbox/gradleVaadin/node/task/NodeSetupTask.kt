@@ -45,7 +45,7 @@ abstract class NodeSetupTask : DefaultTask() {
 
 
     private val vaadinConfig by lazy { VaadinConfig[project] }
-    private val debug by lazy { vaadinConfig.debug }
+    private val debug by lazy { vaadinConfig.debugNodeJs }
 
     private val nodeInfo by lazy { NodeInfo(project) }
     private val nodeArchiveFile = objects.fileProperty()
@@ -281,6 +281,7 @@ abstract class NodeSetupTask : DefaultTask() {
                 this.addArg("--version")
 
                 if (debug) {
+                    this.defaultLogger()
                     Util.execDebug(this)
                 }
             }
@@ -306,6 +307,7 @@ abstract class NodeSetupTask : DefaultTask() {
                 this.addArg("--version")
 
                 if (debug) {
+                    this.defaultLogger()
                     Util.execDebug(this)
                 }
             }
@@ -352,6 +354,7 @@ abstract class NodeSetupTask : DefaultTask() {
                 .addArg("list", "pnpm", "--depth=0")
 
             if (!silent) {
+                this.defaultLogger()
                 Util.execDebug(this)
             }
         }
@@ -427,7 +430,8 @@ abstract class NodeSetupTask : DefaultTask() {
 //                .addArg("--scripts-prepend-node-path")
 
                 if (debug) {
-                    enableRead()
+                    this.enableRead()
+                    this.defaultLogger()
                     Util.execDebug(this)
                 }
             }

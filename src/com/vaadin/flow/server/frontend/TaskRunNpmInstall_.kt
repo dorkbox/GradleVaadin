@@ -146,7 +146,7 @@ object TaskRunNpmInstall_ {
         // now we have to install the dependencies from package.json! We do this MANUALLY, instead of using the builder
         println("\tInstalling package dependencies")
 
-        val debug = VaadinConfig[nodeInfo.project].debug
+        val debug = VaadinConfig[nodeInfo.project].debugNodeJs
         val process = nodeInfo.nodeExe {
             this.workingDirectory(buildDir)
 
@@ -159,6 +159,7 @@ object TaskRunNpmInstall_ {
 
             if (debug) {
                 this.enableRead()
+                this.defaultLogger()
                 Util.execDebug(this)
             }
         }

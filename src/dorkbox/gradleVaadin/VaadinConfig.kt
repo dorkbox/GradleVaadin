@@ -87,6 +87,12 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
     get() { return debug_.get() }
     set(value) { debug_.set(value)}
 
+    @get:Input
+    protected var debugNodeJs_ = project.objects.property(Boolean::class.java).convention(false)
+    var debugNodeJs: Boolean
+    get() { return debugNodeJs_.get() }
+    set(value) { debugNodeJs_.set(value)}
+
     /**
      * Adds "NODE_OPTIONS" to the environment when launching node.js
      */
