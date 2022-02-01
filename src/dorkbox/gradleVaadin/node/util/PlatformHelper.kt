@@ -59,7 +59,7 @@ open class PlatformHelper constructor(private val props: Properties = System.get
 
             return lastOutput
                 .map { line: String ->
-                    line.replaceFirst(regex2, "").trim()
+                    line.trim().replaceFirst(regex2, "")
                 }
                 .orElseThrow { IOException("No output") }
         }
