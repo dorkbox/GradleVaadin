@@ -130,7 +130,7 @@ abstract class NodeSetupTask : DefaultTask() {
     private fun downloadNode() {
         try {
             if (vaadinConfig.download.get()) {
-                println("\t Downloading Node v${vaadinConfig.nodeVersion} (${VariantComputer.osName}-${VariantComputer.osArch})")
+                println("\t Downloading Node ${vaadinConfig.nodeVersion} (${VariantComputer.osName}-${VariantComputer.osArch})")
                 vaadinConfig.distBaseUrl.orNull?.let { addNodeRepository(project, it) }
 
                 val nodeArchiveDependency = VariantComputer.computeNodeArchiveDependency(vaadinConfig)
