@@ -3,7 +3,8 @@ package dorkbox.gradleVaadin
 import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.InitParameters
 import com.vaadin.flow.server.frontend.*
-import com.vaadin.flow.server.frontend.scanner.FrontendDependenciesScanner
+import com.vaadin.flow.server.frontend.scanner.FrontendDependencies
+
 import dorkbox.gradleVaadin.node.NodeInfo
 import elemental.json.Json
 import kotlinx.coroutines.launch
@@ -44,8 +45,7 @@ internal class VaadinCompiler(val project: Project) {
     }
 
     val frontendDependencies by lazy {
-        // this cannot be refactored out! (as tempting as that might be...)
-        FrontendDependenciesScanner.FrontendDependenciesScannerFactory().createScanner(false, customClassFinder, true)
+        FrontendDependencies(customClassFinder, true)
     }
     // SEE: com.vaadin.flow.server.startup.DevModeInitializer
 
@@ -77,6 +77,9 @@ internal class VaadinCompiler(val project: Project) {
 
     // dev
     fun generateWebComponents() {
+        // vaadin.frontend.frontend.folder
+
+
         Util.ensureDirectoryExists(nodeInfo.frontendGeneratedDir)
 
         // enablePackagesUpdate OR enableImportsUpdate

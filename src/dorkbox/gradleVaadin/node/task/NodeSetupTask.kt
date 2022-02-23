@@ -286,11 +286,12 @@ abstract class NodeSetupTask : DefaultTask() {
                 }
             }
 
+            detectedVersion = PlatformHelper.parseVersionString(detectedVersion)
+
             if (debug) {
-                println("\t\tNODE Detection: $detectedVersion")
+                println("\t\tNODE Detected: $detectedVersion")
             }
 
-            detectedVersion = PlatformHelper.parseVersionString(detectedVersion)
             var parsedVersion = Version.from(detectedVersion)
             detectedNodeVersion = detectedVersion
 
@@ -312,11 +313,15 @@ abstract class NodeSetupTask : DefaultTask() {
                 }
             }
 
+            detectedVersion = PlatformHelper.parseVersionString(detectedVersion)
             if (debug) {
                 println("\t\tNPM Detection: $detectedVersion")
             }
 
-            detectedVersion = PlatformHelper.parseVersionString(detectedVersion)
+            if (detectedVersion.isNullOrEmpty()) {
+                return false
+            }
+
             parsedVersion = Version.from(detectedVersion)
             detectedNpmVersion = detectedVersion
 

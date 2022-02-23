@@ -33,7 +33,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to build Vaadin for use by the VaadinUndertow library"
     const val group = "com.dorkbox"
-    const val version = "14.7.5-2"
+    const val version = "14.7.5-12"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
@@ -69,6 +69,7 @@ licensing {
     }
 }
 
+
 dependencies {
     // the kotlin version is taken from the plugin, so it is not necessary to set it here
     compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin")
@@ -77,13 +78,13 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${Extras.coroutineVer}")
 
     // Uber-fast, ultra-lightweight Java classpath and module path scanner
-    implementation("io.github.classgraph:classgraph:4.8.138")
+    implementation("io.github.classgraph:classgraph:4.8.139")
 
     //  implementation("com.vaadin:vaadin:${Extras.vaadinVer}") // NOTE: uncomment for testing ONLY
     implementation("com.vaadin:flow-server:${Extras.vaadinFlowVer}")
 
     implementation("com.dorkbox:VaadinUndertow:${Extras.vaadinUndertowVer}")
-    implementation("com.dorkbox:Executor:3.6")
+    implementation("com.dorkbox:Executor:3.9")
     implementation("com.dorkbox:Version:2.4")
 }
 

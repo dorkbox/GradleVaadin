@@ -93,7 +93,8 @@ class NodeInfo(val project: Project) {
     val nodeDirProvider = config.nodeJsDir
     val nodeBinDir by lazy { VariantComputer.computeNodeBinDir(config.nodeJsDir__) }
 
-    val nodeBinExec by lazy { VariantComputer.computeNodeExec(config, nodeBinDir) } // dont' want to compute things too early
+    val nodeBinExec by lazy { VariantComputer.computeNodeExecFullPath(config,nodeBinDir) } // dont' want to compute things too early
+    val nodeExec= VariantComputer.computeNodeExecFile()
 
 
     val nodeJsDir by lazy { config.nodeJsDir__ }
@@ -117,8 +118,7 @@ class NodeInfo(val project: Project) {
 
     fun nodeExe(config: Executor.() -> Unit): SyncProcessResult {
         val exe = Executor()
-            .executable(nodeBinExec)
-//            .workingDirectory(File(nodeBinExec).parent)
+            .executable(nodeExec)
             .environment("ADBLOCK", "1")
             .useSystemEnvironment()
 
@@ -127,17 +127,16 @@ class NodeInfo(val project: Project) {
             exe.environment["NODE_OPTIONS"] = nodeOptions
         }
 
-        Util.addPath(exe.environment, nodeBinDir.path)
+        exe.addPath(nodeBinDir.path)
 
         config(exe)
 
-        return exe.startAsShellBlocking()
+        return exe.startBlocking()
     }
 
     fun nodeExeAsync(config: Executor.() -> Unit): DeferredProcessResult {
         val exe = Executor()
-            .executable(nodeBinExec)
-//            .workingDirectory(File(nodeBinExec).parent)
+            .executable(nodeExec)
             .environment("ADBLOCK", "1")
             .useSystemEnvironment()
 
@@ -145,17 +144,16 @@ class NodeInfo(val project: Project) {
             exe.environment["NODE_OPTIONS"] = nodeOptions
         }
 
-        Util.addPath(exe.environment, nodeBinDir.path)
+        exe.addPath(nodeBinDir.path)
 
         config(exe)
 
-        return exe.startAsShellAsync()
+        return exe.startAsync()
     }
 
     fun nodeExeOutput(config: Executor.() -> Unit): String {
         val exe = Executor()
-            .executable(nodeBinExec)
-//            .workingDirectory(File(nodeBinExec).parent)
+            .executable(nodeExec)
             .environment("ADBLOCK", "1")
             .useSystemEnvironment()
 
@@ -163,7 +161,7 @@ class NodeInfo(val project: Project) {
             exe.environment["NODE_OPTIONS"] = nodeOptions
         }
 
-        Util.addPath(exe.environment, nodeBinDir.path)
+        exe.addPath(nodeBinDir.path)
 
         config(exe)
 
@@ -177,7 +175,7 @@ class NodeInfo(val project: Project) {
 
     fun npmExe(config: Executor.() -> Unit): SyncProcessResult {
         val exe = Executor()
-            .executable(nodeBinExec)
+            .executable(nodeExec)
             //            .workingDirectory(File(nodeBinExec).parent)
             .environment("ADBLOCK", "1")
             .addArg(npmScript)
@@ -188,11 +186,11 @@ class NodeInfo(val project: Project) {
             exe.environment["NODE_OPTIONS"] = nodeOptions
         }
 
-        Util.addPath(exe.environment, nodeBinDir.path)
+        exe.addPath(nodeBinDir.path)
 
         config(exe)
 
-        return exe.startAsShellBlocking()
+        return exe.startBlocking()
     }
 
     fun npmExeOutput(config: Executor.() -> Unit): String {

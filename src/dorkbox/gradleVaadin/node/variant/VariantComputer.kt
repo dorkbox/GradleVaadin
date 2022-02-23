@@ -34,16 +34,18 @@ object VariantComputer {
         return zip(vaadinConfig.download, nodeBinDirProvider).map {
             val (download, nodeBinDir) = it
             if (download) {
-                val nodeCommand = if (platformHelper.isWindows) "node.exe" else "node"
-                nodeBinDir.dir(nodeCommand).asFile.absolutePath
+                nodeBinDir.dir(computeNodeExecFile()).asFile.absolutePath
             } else "node"
         }
     }
 
-    fun computeNodeExec(vaadinConfig: VaadinConfig, nodeBinDir: File): String {
+    fun computeNodeExecFile(): String {
+        return if (platformHelper.isWindows) "node.exe" else "node"
+    }
+
+    fun computeNodeExecFullPath(vaadinConfig: VaadinConfig, nodeBinDir: File): String {
         return if (vaadinConfig.download.get()) {
-            val nodeCommand = if (platformHelper.isWindows) "node.exe" else "node"
-            nodeBinDir.resolve(nodeCommand).absolutePath
+            nodeBinDir.resolve(computeNodeExecFile()).absolutePath
         } else {
             "node"
         }

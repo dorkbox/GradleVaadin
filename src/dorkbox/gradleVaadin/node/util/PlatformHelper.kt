@@ -48,18 +48,21 @@ open class PlatformHelper constructor(private val props: Properties = System.get
         var INSTANCE = PlatformHelper()
         val regex = "\n".toRegex()
         val regex1 = "^[ ]*$".toRegex()
-        val regex2 = "^v".toRegex()
 
         @Throws(IOException::class)
         fun parseVersionString(output: String): String {
-
             val lastOutput = Stream.of(*output.split(regex).toTypedArray())
                 .filter { line: String -> !line.matches(regex1) }
                 .reduce { _: String, second: String -> second }
 
             return lastOutput
                 .map { line: String ->
-                    line.trim().replaceFirst(regex2, "")
+                    var trimmed = line
+                    while (trimmed.isNotEmpty() && !trimmed.first().isDigit()) {
+                        trimmed = trimmed.removeRange(0, 1)
+                    }
+
+                    trimmed.trim()
                 }
                 .orElseThrow { IOException("No output") }
         }
