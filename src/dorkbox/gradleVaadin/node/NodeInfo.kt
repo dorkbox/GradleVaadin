@@ -127,6 +127,10 @@ class NodeInfo(val project: Project) {
             exe.environment["NODE_OPTIONS"] = nodeOptions
         }
 
+        if (debugNodeJS) {
+            exe.defaultLogger()
+        }
+
         exe.addPath(nodeBinDir.path)
 
         config(exe)
@@ -144,6 +148,10 @@ class NodeInfo(val project: Project) {
             exe.environment["NODE_OPTIONS"] = nodeOptions
         }
 
+        if (debugNodeJS) {
+            exe.defaultLogger()
+        }
+
         exe.addPath(nodeBinDir.path)
 
         config(exe)
@@ -159,6 +167,10 @@ class NodeInfo(val project: Project) {
 
         if (nodeOptions.isNotEmpty()) {
             exe.environment["NODE_OPTIONS"] = nodeOptions
+        }
+
+        if (debugNodeJS) {
+            exe.defaultLogger()
         }
 
         exe.addPath(nodeBinDir.path)
@@ -184,6 +196,10 @@ class NodeInfo(val project: Project) {
 
         if (nodeOptions.isNotEmpty()) {
             exe.environment["NODE_OPTIONS"] = nodeOptions
+        }
+
+        if (debugNodeJS) {
+            exe.defaultLogger()
         }
 
         exe.addPath(nodeBinDir.path)
