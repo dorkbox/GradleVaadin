@@ -3,6 +3,7 @@ package dorkbox.gradleVaadin.node.util
 import com.dorkbox.version.Version
 import com.vaadin.flow.server.frontend.FrontendUtils
 import com.vaadin.flow.server.frontend.FrontendVersion
+import dorkbox.executor.Executor
 import java.io.IOException
 import java.util.*
 import java.util.stream.Stream
@@ -40,7 +41,7 @@ open class PlatformHelper constructor(private val props: Properties = System.get
         val value = props.getProperty(name)
         return value ?: System.getProperty(name) ?:
         // Added so that we can test osArch on Windows and on non-arm systems
-        if (name == "uname") execute("uname", "-m")
+        if (name == "uname") Executor.run("uname", "-m")
         else error("Unable to find a value for property [$name].")
     }
 
