@@ -44,7 +44,6 @@ class Vaadin : Plugin<Project> {
     companion object {
         internal const val NODE_GROUP = "Node"
         internal const val NPM_GROUP = "npm"
-        internal const val YARN_GROUP = "Yarn"
 
         internal const val SHUTDOWN_TASK = "shutdownCompiler"
         internal const val compileDevName = "vaadinDevelopment"
