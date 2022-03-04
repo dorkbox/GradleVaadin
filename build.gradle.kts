@@ -33,7 +33,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to build Vaadin for use by the VaadinUndertow library"
     const val group = "com.dorkbox"
-    const val version = "14.7.6"
+    const val version = "14.7.7"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
@@ -45,7 +45,7 @@ object Extras {
 
     const val coroutineVer = "1.6.0"
 
-    const val vaadinUndertowVer = "14.7.3"
+    const val vaadinUndertowVer = "14.7.4"
 
     // These MUST be in lock-step with what the VaadinUndertow launcher defines, otherwise horrific errors can occur.
     const val undertowVer = "2.2.14.Final"
