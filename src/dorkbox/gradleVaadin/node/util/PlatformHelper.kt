@@ -41,7 +41,7 @@ open class PlatformHelper constructor(private val props: Properties = System.get
         val value = props.getProperty(name)
         return value ?: System.getProperty(name) ?:
         // Added so that we can test osArch on Windows and on non-arm systems
-        if (name == "uname") Executor.run("uname", "-m")
+        if (name == "uname") Executor.run("uname", "-m").trim()
         else error("Unable to find a value for property [$name].")
     }
 
