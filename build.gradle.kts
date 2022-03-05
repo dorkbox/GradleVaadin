@@ -33,7 +33,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to build Vaadin for use by the VaadinUndertow library"
     const val group = "com.dorkbox"
-    const val version = "14.7.7"
+    const val version = "14.7.8"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
@@ -43,12 +43,10 @@ object Extras {
     val tags = listOf("vaadin", "undertow")
     val buildDate = Instant.now().toString()
 
-    const val coroutineVer = "1.6.0"
-
-    const val vaadinUndertowVer = "14.7.4"
+    const val vaadinUndertowVer = "14.7.6"
 
     // These MUST be in lock-step with what the VaadinUndertow launcher defines, otherwise horrific errors can occur.
-    const val undertowVer = "2.2.14.Final"
+    const val undertowVer = "2.2.16.Final"
     const val vaadinVer = "14.7.8"
     const val vaadinFlowVer = "2.7.6"
 
@@ -75,10 +73,10 @@ dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin")
 
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${Extras.coroutineVer}")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
 
     // Uber-fast, ultra-lightweight Java classpath and module path scanner
-    implementation("io.github.classgraph:classgraph:4.8.139")
+    implementation("io.github.classgraph:classgraph:4.8.141")
 
     //  implementation("com.vaadin:vaadin:${Extras.vaadinVer}") // NOTE: uncomment for testing ONLY
     implementation("com.vaadin:flow-server:${Extras.vaadinFlowVer}")
