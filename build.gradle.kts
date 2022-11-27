@@ -13,6 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+import org.gradle.tooling.model.gradle.GradlePublication
 import java.time.Instant
 
 gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS_FULL   // always show the stacktrace!
@@ -20,20 +21,20 @@ gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS_FULL   // always sh
 plugins {
     `java-gradle-plugin`
 
-    id("com.gradle.plugin-publish") version "0.14.0"
+    id("com.gradle.plugin-publish") version "1.1.0"
 
-    id("com.dorkbox.Licensing") version "2.12"
-    id("com.dorkbox.VersionUpdate") version "2.4"
-    id("com.dorkbox.GradleUtils") version "2.16"
+    id("com.dorkbox.Licensing") version "2.17"
+    id("com.dorkbox.VersionUpdate") version "2.5"
+    id("com.dorkbox.GradleUtils") version "3.3"
 
-    kotlin("jvm") version "1.6.10"
+    kotlin("jvm") version "1.7.20"
 }
 
 object Extras {
     // set for the project
     const val description = "Gradle Plugin to build Vaadin for use by the VaadinUndertow library"
     const val group = "com.dorkbox"
-    const val version = "14.7.8"
+    const val version = "14.8"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
@@ -43,12 +44,13 @@ object Extras {
     val tags = listOf("vaadin", "undertow")
     val buildDate = Instant.now().toString()
 
-    const val vaadinUndertowVer = "14.7.6"
+    const val vaadinUndertowVer = "14.8"
 
     // These MUST be in lock-step with what the VaadinUndertow launcher defines, otherwise horrific errors can occur.
-    const val undertowVer = "2.2.16.Final"
-    const val vaadinVer = "14.7.8"
-    const val vaadinFlowVer = "2.7.6"
+    const val vaadinVer = "14.8.20"
+    const val undertowVer = "2.2.21.Final"
+
+    const val vaadinFlowVer = "2.7.23"
 
 }
 
@@ -57,7 +59,7 @@ object Extras {
 ///////////////////////////////
 GradleUtils.load("$projectDir/../../gradle.properties", Extras)
 GradleUtils.defaults()
-GradleUtils.compileConfiguration(JavaVersion.VERSION_1_8)
+GradleUtils.compileConfiguration(JavaVersion.VERSION_11)
 
 licensing {
     license(License.APACHE_2) {
@@ -73,16 +75,17 @@ dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin")
 
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
 
     // Uber-fast, ultra-lightweight Java classpath and module path scanner
-    implementation("io.github.classgraph:classgraph:4.8.141")
+    implementation("io.github.classgraph:classgraph:4.8.151")
 
     //  implementation("com.vaadin:vaadin:${Extras.vaadinVer}") // NOTE: uncomment for testing ONLY
     implementation("com.vaadin:flow-server:${Extras.vaadinFlowVer}")
 
+    // this is used to announce the version of vaadin to use with the plugin
     implementation("com.dorkbox:VaadinUndertow:${Extras.vaadinUndertowVer}")
-    implementation("com.dorkbox:Executor:3.9")
+    implementation("com.dorkbox:Executor:3.11")
     implementation("com.dorkbox:Version:2.4")
 }
 
@@ -105,6 +108,9 @@ tasks.jar.get().apply {
         attributes["Implementation-Vendor"] = Extras.vendor
     }
 }
+repositories {
+    mavenCentral()
+}
 
 
 /////////////////////////////////
@@ -115,6 +121,9 @@ gradlePlugin {
         create("GradlePublish") {
             id = "${Extras.group}.${Extras.id}"
             implementationClass = "dorkbox.gradleVaadin.Vaadin"
+            displayName = Extras.name
+            description = Extras.description
+            version = Extras.version
         }
     }
 }
@@ -122,14 +131,5 @@ gradlePlugin {
 pluginBundle {
     website = Extras.url
     vcsUrl = Extras.url
-
-    (plugins) {
-        "GradlePublish" {
-            id = "${Extras.group}.${Extras.id}"
-            displayName = Extras.name
-            description = Extras.description
-            tags = Extras.tags
-            version = Extras.version
-        }
-    }
+    tags = Extras.tags
 }

@@ -23,7 +23,6 @@ import dorkbox.gradleVaadin.node.npm.task.NpmTask
 import dorkbox.gradleVaadin.node.npm.task.NpxTask
 import dorkbox.gradleVaadin.node.task.NodeSetupTask
 import dorkbox.gradleVaadin.node.task.NodeTask
-import dorkbox.gradleVaadin.node.variant.VariantComputer
 import dorkbox.vaadin.VaadinApplication
 import org.gradle.api.Action
 import org.gradle.api.Plugin
@@ -32,7 +31,6 @@ import org.gradle.api.Task
 import org.gradle.api.execution.TaskExecutionGraph
 import org.gradle.api.tasks.TaskInputs
 import org.gradle.jvm.tasks.Jar
-import java.io.File
 
 /**
  * For managing Vaadin gradle tasks
