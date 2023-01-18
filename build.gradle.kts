@@ -47,10 +47,10 @@ object Extras {
     const val vaadinUndertowVer = "14.8"
 
     // These MUST be in lock-step with what the VaadinUndertow launcher defines, otherwise horrific errors can occur.
-    const val vaadinVer = "14.8.20"
+    const val vaadinVer = "14.9.4"
     const val undertowVer = "2.2.21.Final"
 
-    const val vaadinFlowVer = "2.7.23"
+    const val vaadinFlowVer = "2.8.3"
 
 }
 

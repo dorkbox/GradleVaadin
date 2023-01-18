@@ -87,7 +87,7 @@ internal class VaadinCompiler(val project: Project) {
         val gen = FrontendWebComponentGenerator(customClassFinder)
         gen.generateWebComponents(nodeInfo.frontendGeneratedDir, frontendDependencies.themeDefinition)
 
-        TaskGenerateTsFiles_.execute(nodeInfo.buildDir, frontendDependencies.modules)
+        TaskGenerateTsFiles_.execute(nodeInfo.buildDir)
     }
 
     // dev
@@ -160,8 +160,9 @@ internal class VaadinCompiler(val project: Project) {
 
     // dev
     fun enableImportsUpdate() {
+        val productionMode: Boolean = config.productionMode.get()
         val additionalFrontendModules = emptyList<String>() // TODO: get this from the plugin configuration
-        TaskUpdateImports_.execute(nodeInfo, customClassFinder, frontendDependencies, additionalFrontendModules)
+        TaskUpdateImports_.execute(nodeInfo, customClassFinder, frontendDependencies, additionalFrontendModules, productionMode, false)
 
         TaskUpdateThemeImport_.execute(nodeInfo, frontendDependencies.themeDefinition)
     }

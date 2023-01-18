@@ -6,7 +6,7 @@ import dorkbox.gradleVaadin.node.NodeInfo
 import org.slf4j.Logger
 
 /**
- * flow-server-2.4.6
+ * flow-server-2.8.3
  */
 object TaskUpdatePackages_ {
     fun execute(classFinder: ClassFinder, frontendDependenciesScanner: FrontendDependenciesScanner, nodeInfo: NodeInfo): TaskUpdatePackages {

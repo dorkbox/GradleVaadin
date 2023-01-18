@@ -5,7 +5,7 @@ import dorkbox.gradleVaadin.node.NodeInfo
 import java.io.File
 
 /**
- * flow-server-2.7.1
+ * flow-server-2.8.3
  */
 object TaskCopyFrontendFiles_ {
     @Suppress("LocalVariableName")
@@ -58,7 +58,7 @@ object TaskCopyFrontendFiles_ {
 
         // copy jar resources
 
-        val WILDCARD_INCLUSIONS = arrayOf("**/*.js", "**/*.css", "**/*.ts")
+        val WILDCARD_INCLUSIONS = arrayOf("**/*.js", "**/*.js.map", "**/*.css", "**/*.css.map", "**/*.ts", "**/*.ts.map" )
         val WILDCARD_INCLUSION_APP_THEME_JAR = "**/themes/**/*"
 
 

@@ -15,7 +15,9 @@ import java.net.URI
 import java.nio.charset.StandardCharsets
 
 /**
- * flow-server-2.4.6
+ * WE INSTALL NODE OURSELVES!
+ *
+ * flow-server-2.8.3
  */
 object TaskRunNpmInstall_ {
     private val ignoredNodeFolders = listOf(

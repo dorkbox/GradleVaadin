@@ -148,6 +148,9 @@ class Vaadin : Plugin<Project> {
             add("implementation", "io.undertow:undertow-core:${VaadinConfig.UNDERTOW_VERSION}")
             add("implementation", "io.undertow:undertow-servlet:${VaadinConfig.UNDERTOW_VERSION}")
             add("implementation", "io.undertow:undertow-websockets-jsr:${VaadinConfig.UNDERTOW_VERSION}")
+
+            // Vaadin 14.9 changed how license checking works, and forgot to include this.
+            add("implementation", "com.github.oshi:oshi-core-java11:6.4.0")
         }
 
         // NOTE: NPM will ALWAYS install packages to the "node_modules" directory that is a sibling to the packages.json directory!

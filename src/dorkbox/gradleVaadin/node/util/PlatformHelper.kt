@@ -1,12 +1,13 @@
 package dorkbox.gradleVaadin.node.util
 
 import com.dorkbox.version.Version
+import com.vaadin.flow.server.frontend.FrontendTools
 import com.vaadin.flow.server.frontend.FrontendUtils
 import com.vaadin.flow.server.frontend.FrontendVersion
 import dorkbox.executor.Executor
 import java.io.IOException
 import java.util.*
-import java.util.stream.Stream
+import java.util.stream.*
 
 open class PlatformHelper constructor(private val props: Properties = System.getProperties()) {
     open val osName: String by lazy {
@@ -108,7 +109,7 @@ open class PlatformHelper constructor(private val props: Properties = System.get
                     + "%nPlease install a new one either:"
                     + "%n  - by following the https://nodejs.org/en/download/ guide to install it globally"
                     + "%n  - or by running the frontend-maven-plugin goal to install it in this project:"
-                    + FrontendUtils.INSTALL_NODE_LOCALLY
+                    + FrontendTools.INSTALL_NODE_LOCALLY
                     + "%n" //
                     + FrontendUtils.DISABLE_CHECK //
                     + "%n======================================================================================================%n")

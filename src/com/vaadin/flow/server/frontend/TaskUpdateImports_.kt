@@ -8,10 +8,10 @@ import dorkbox.gradleVaadin.JsonPackageTools
 import dorkbox.gradleVaadin.node.NodeInfo
 
 /**
- * flow-server-2.4.6
+ * flow-server-2.8.3
  */
 object TaskUpdateImports_ {
-    fun execute(nodeInfo: NodeInfo, customClassFinder: CustomClassFinder, dependencyScanner: FrontendDependenciesScanner, additionalFrontendModules: List<String>) {
+    fun execute(nodeInfo: NodeInfo, customClassFinder: CustomClassFinder, dependencyScanner: FrontendDependenciesScanner, additionalFrontendModules: List<String>, productionMode: Boolean, oldLicenseChecker: Boolean) {
         // enableImportsUpdate
         val start = System.nanoTime()
 
@@ -40,7 +40,9 @@ object TaskUpdateImports_ {
             tokenFile,    // the token (flow-build-info.json) path, may be {@code null}
             tokenJson,    // object to fill with token file data, may be {@code null}
             !nodeInfo.enablePnpm,
-            additionalFrontendModules // additional frontEnd modules
+            additionalFrontendModules, // additional frontEnd modules
+            productionMode,
+            oldLicenseChecker
         )
 
         task.execute()

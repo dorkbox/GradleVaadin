@@ -1,13 +1,12 @@
 package com.vaadin.flow.server.frontend
 
 import dorkbox.gradleVaadin.CustomClassFinder
-import dorkbox.gradleVaadin.JsonPackageTools
 import dorkbox.gradleVaadin.node.NodeInfo
 import java.io.FileOutputStream
 
 
 /**
- * flow-server-2.7.1
+ * flow-server-2.8.3
  */
 object TaskUpdateWebpack_ {
     fun execute(nodeInfo: NodeInfo, customClassFinder: CustomClassFinder) {

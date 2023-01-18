@@ -6,7 +6,7 @@ import org.jetbrains.kotlin.gradle.internal.ensureParentDirsCreated
 import org.slf4j.Logger
 
 /**
- * flow-server-2.7.1
+ * flow-server-2.8.3
  */
 object TaskCreatePackageJson_ {
     fun execute(nodeInfo: NodeInfo) {
