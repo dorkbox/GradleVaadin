@@ -68,7 +68,10 @@ abstract class NodeSetupTask : DefaultTask() {
         description = "Download and install a local node/npm version."
 
         outputs.upToDateWhen {
-            false
+            var installNodeOK = validateNodeInstall(true)
+            var installPnpmOK = !enablePnpm || enablePnpm && validatePnpmInstall(true)
+
+            installNodeOK && installPnpmOK
         }
     }
 
@@ -76,7 +79,7 @@ abstract class NodeSetupTask : DefaultTask() {
     fun exec() {
         // vaadin DEV MODE looks for node in the following location: basedir + "node/node_modules/npm/bin/npm-cli.js"
         var installNodeOK = validateNodeInstall(true)
-        var installPnpmOK = enablePnpm && validatePnpmInstall(true)
+        var installPnpmOK = !enablePnpm || enablePnpm && validatePnpmInstall(true)
 
 
         // if version info is OK, no need to download + reinstall nodejs
