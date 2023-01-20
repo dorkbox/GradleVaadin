@@ -2,7 +2,6 @@ package dorkbox.gradleVaadin.node
 
 import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.frontend.FrontendUtils
-import com.vaadin.flow.server.frontend.Util
 import dorkbox.executor.DeferredProcessResult
 import dorkbox.executor.Executor
 import dorkbox.executor.processResults.SyncProcessResult
@@ -53,7 +52,8 @@ class NodeInfo(val project: Project) {
     val origWebPackProdFile = sourceDir.resolve("webpack.production.js")
 
     val jsonPackageFile = sourceDir.resolve(Constants.PACKAGE_JSON)
-    val jsonPackageLockFile = buildDir.resolve("package-lock.json")
+    val buildDirJsonPackageFile = buildDir.resolve(Constants.PACKAGE_JSON)
+    val buildDirJsonPackageLockFile = buildDir.resolve("package-lock.json")
 
     // The webpack files MUST be executed from the build dir...
     val webPackFile = buildDir.resolve(FrontendUtils.WEBPACK_CONFIG)
@@ -61,7 +61,6 @@ class NodeInfo(val project: Project) {
     val webPackGeneratedFile = buildDir.resolve(FrontendUtils.WEBPACK_GENERATED)
 
 
-    val buildDirJsonPackageFile = buildDir.resolve(Constants.PACKAGE_JSON)
 
 
     val frontendDir = sourceDir.resolve(FrontendUtils.FRONTEND)
