@@ -33,7 +33,7 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to build Vaadin for use by the VaadinUndertow library"
     const val group = "com.dorkbox"
-    const val version = "14.8"
+    const val version = "14.8.13"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
@@ -43,7 +43,7 @@ object Extras {
     val tags = listOf("vaadin", "undertow")
     val buildDate = Instant.now().toString()
 
-    const val vaadinUndertowVer = "14.8"
+    const val vaadinUndertowVer = "14.9"
 
     // These MUST be in lock-step with what the VaadinUndertow launcher defines, otherwise horrific errors can occur.
     const val vaadinVer = "14.9.4"
@@ -116,6 +116,9 @@ repositories {
 ////////    Plugin Publishing + Release
 /////////////////////////////////
 gradlePlugin {
+    website.set(Extras.url)
+    vcsUrl.set(Extras.url)
+
     plugins {
         create("GradlePublish") {
             id = "${Extras.group}.${Extras.id}"
@@ -123,12 +126,7 @@ gradlePlugin {
             displayName = Extras.name
             description = Extras.description
             version = Extras.version
+            tags.set(Extras.tags)
         }
     }
-}
-
-pluginBundle {
-    website = Extras.url
-    vcsUrl = Extras.url
-    tags = Extras.tags
 }
