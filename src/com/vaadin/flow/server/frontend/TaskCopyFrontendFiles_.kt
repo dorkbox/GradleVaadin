@@ -7,14 +7,17 @@ import java.io.File
 /**
  * flow-server-2.8.3
  */
-object TaskCopyFrontendFiles_ {
-    @Suppress("LocalVariableName")
-    fun execute(projectDependencies: List<File>, nodeInfo: NodeInfo) {
-        println("\tCopying jar/embedded resources...")
+class TaskCopyFrontendFiles_(val projectDependencies: List<File>, nodeInfo: NodeInfo) {
+    val flowTargetDirectory = nodeInfo.createFrontendDir()
+    val themeJarTargetDirectory = nodeInfo.frontendGeneratedDir
 
+    val frontendLocations by lazy { getLocations(projectDependencies) }
+
+    private fun getLocations(projectDependencies: List<File>): MutableSet<File> {
         val start = System.nanoTime()
 
-        /////////////////////
+        val frontendLocations = mutableSetOf<File>()
+
         val classPathScanResult = io.github.classgraph.ClassGraph()
             .overrideClasspath(projectDependencies)
             .enableSystemJarsAndModules()
@@ -23,7 +26,7 @@ object TaskCopyFrontendFiles_ {
             .enableAllInfo()
             .scan()
 
-        val frontendLocations = mutableSetOf<File>()
+
 
         // all jar files having files in the 'META-INF/frontend' or 'META-INF/resources/frontend' folder.
         //  We don't use URLClassLoader because will fail in Java 9+
@@ -41,14 +44,27 @@ object TaskCopyFrontendFiles_ {
         }
 
         classPathScanResult.close()
-        /////////////////////
 
-        val flowTargetDirectory = nodeInfo.createFrontendDir()
+        val ms = (System.nanoTime() - start) / 1000000
+        println("\t\tScanned ${frontendLocations.size} resources in $ms ms")
 
-        val themeJarTargetDirectory = nodeInfo.frontendGeneratedDir
+        return frontendLocations
+    }
+
+
+    @Suppress("LocalVariableName")
+    fun execute() {
+        println("\tCopying jar/embedded resources...")
 
         println("\tCopying jar frontend resources to '$flowTargetDirectory'")
         println("\tCopying theme resources to '$themeJarTargetDirectory'")
+
+        // make sure the target location exists
+        flowTargetDirectory.mkdirs()
+
+        /////////////////////
+
+        /////////////////////
 
         // get all jar files having files in the 'META-INF/frontend' or 'META-INF/resources/frontend' folder.
         println("\t\tFound ${frontendLocations.size} resources")
@@ -57,6 +73,8 @@ object TaskCopyFrontendFiles_ {
         }
 
         // copy jar resources
+        val start = System.nanoTime()
+
 
         val WILDCARD_INCLUSIONS = arrayOf("**/*.js", "**/*.js.map", "**/*.css", "**/*.css.map", "**/*.ts", "**/*.ts.map" )
         val WILDCARD_INCLUSION_APP_THEME_JAR = "**/themes/**/*"
