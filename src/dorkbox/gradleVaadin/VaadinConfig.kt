@@ -16,7 +16,7 @@
 package dorkbox.gradleVaadin
 
 import com.vaadin.flow.server.frontend.FrontendTools
-import com.vaadin.flow.server.frontend.FrontendUtils.*
+import com.vaadin.flow.server.frontend.FrontendUtils.FRONTEND
 import dorkbox.gradleVaadin.node.npm.proxy.ProxySettings
 import dorkbox.vaadin.VaadinApplication
 import org.gradle.api.Project
@@ -114,6 +114,16 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
     get() { return extractJar_.get() }
     set(value) { extractJar_.set(value)}
 
+    /**
+     * Used when compiling Vaadin.
+     * Old License mode (false, default): Javascript license checker ("old" license validation method). Compatibility/Bower mode always uses old license checking.
+     * New License mode (true): Check the license when compiling vaadin ("new" license validation method)
+     */
+    @get:Input
+    protected var newLicenseMode_ = project.objects.property(Boolean::class.java).convention(false)
+    var newLicenseMode: Boolean
+    get() { return newLicenseMode_.get() }
+    set(value) { newLicenseMode_.set(value)}
 
     @get:Input
     protected var enablePnpm_ = project.objects.property(Boolean::class.java).convention(false)

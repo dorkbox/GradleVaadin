@@ -71,6 +71,7 @@ internal class VaadinCompiler(val project: Project) {
             println("\t\tJsonPackageFile: ${nodeInfo.jsonPackageFile}")
             println("\t\tJsonPackage generated file: ${nodeInfo.buildDirJsonPackageFile}")
         } else {
+            println("\t\tProduction Mode: ${config.productionMode.get()}")
             println("\t\tVaadin version: ${VaadinConfig.VAADIN_VERSION}")
         }
     }
@@ -78,7 +79,6 @@ internal class VaadinCompiler(val project: Project) {
     // dev
     fun generateWebComponents() {
         // vaadin.frontend.frontend.folder
-
 
         Util.ensureDirectoryExists(nodeInfo.frontendGeneratedDir)
 
@@ -101,11 +101,6 @@ internal class VaadinCompiler(val project: Project) {
         val packageUpdater = TaskUpdatePackages_.execute(customClassFinder, frontendDependencies, nodeInfo)
         TaskRunNpmInstall_.execute(customClassFinder, nodeInfo, packageUpdater)
         TaskInstallWebpackPlugins_.execute(nodeInfo.nodeModulesDir)
-    }
-
-    // dev
-    fun copyJarResources() {
-        TaskCopyFrontendFiles_.execute(projectDependencies, nodeInfo)
     }
 
     // dev
@@ -162,19 +157,10 @@ internal class VaadinCompiler(val project: Project) {
     fun enableImportsUpdate() {
         val productionMode: Boolean = config.productionMode.get()
         val additionalFrontendModules = emptyList<String>() // TODO: get this from the plugin configuration
-        TaskUpdateImports_.execute(nodeInfo, customClassFinder, frontendDependencies, additionalFrontendModules, productionMode, false)
+        TaskUpdateImports_.execute(nodeInfo, customClassFinder, frontendDependencies, additionalFrontendModules, productionMode, !config.newLicenseMode)
 
         TaskUpdateThemeImport_.execute(nodeInfo, frontendDependencies.themeDefinition)
     }
-
-
-
-
-
-
-
-
-
 
     // production
     fun generateWebPack() {
