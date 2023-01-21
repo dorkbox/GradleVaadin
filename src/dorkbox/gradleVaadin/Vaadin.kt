@@ -150,12 +150,13 @@ class Vaadin : Plugin<Project> {
                 val checkName = task.name.startColon()
                 if (debug) println("checking  $checkName :: $taskToLookForName")
                 if (checkName == taskToLookForName) {
-                    println("\t\tFound startup task: $taskToLookForName")
+                    if (debug) println("\t\tFound startup task: $taskToLookForName")
                     return true
                 }
 
                 if (debug) println("checking  $checkName  :: ${taskToLookFor.name.startColon()}")
                 if (checkName == taskToLookFor.name.startColon()) {
+                    if (debug) println("\t\tFound startup task: $taskToLookForName")
                     return true
                 }
             }
@@ -216,10 +217,10 @@ class Vaadin : Plugin<Project> {
                     }
                     is Task -> {
                         val taskName1 = buildName(task)
-                        if (debug) println("1\t\t$taskName1")
+                        if (debug) println("\t\t$taskName1")
 
                         if (taskName1 == taskToLookForName) {
-                            println("\t\tFound task: $taskToLookForName")
+                            if (debug) println("\t\tFound task: $taskToLookForName")
                             return true
                         }
 
@@ -257,7 +258,7 @@ class Vaadin : Plugin<Project> {
                             if (debug) println("\t\t${task}")
 
                             if (task == taskToLookForName) {
-                                println("\t\tFound task: $taskToLookForName")
+                                if (debug) println("\t\tFound task: $taskToLookForName")
                                 return true
                             }
 
@@ -425,15 +426,13 @@ class Vaadin : Plugin<Project> {
                 if (isExplicitRun) {
                     outputs.upToDateWhen { false }
                 }
+                val task = TaskCopyFrontendFiles_(project, compiler, nodeInfo)
 
-                val task = TaskCopyFrontendFiles_(compiler.projectDependencies, nodeInfo)
-
-                if (project.isMyTaskAHardDependency(allTasksNames, copyJarResources)) {
-                    inputs.files(task.frontendLocations)
-                }
+                // NOTE: cannot scan dependency classpath with moshix BEFORE moshiX is applied
+//                    inputs.files(task.frontendLocations)
 
                 outputs.dirs(
-                    task.flowTargetDirectory,
+                    task.flowNpmTargetDirectory,
                     task.themeJarTargetDirectory
                 )
 

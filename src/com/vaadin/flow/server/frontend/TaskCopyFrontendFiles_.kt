@@ -1,17 +1,21 @@
 package com.vaadin.flow.server.frontend
 
 import com.vaadin.flow.server.Constants
+import dorkbox.gradleVaadin.VaadinCompiler
 import dorkbox.gradleVaadin.node.NodeInfo
+import org.gradle.api.Project
 import java.io.File
 
 /**
  * flow-server-2.8.3
  */
-class TaskCopyFrontendFiles_(val projectDependencies: List<File>, nodeInfo: NodeInfo) {
-    val flowTargetDirectory = nodeInfo.createFrontendDir()
+class TaskCopyFrontendFiles_(project: Project, private val compiler: VaadinCompiler, nodeInfo: NodeInfo) {
+    val flowNpmTargetDirectory = nodeInfo.createFrontendDir()
     val themeJarTargetDirectory = nodeInfo.frontendGeneratedDir
 
-    val frontendLocations by lazy { getLocations(projectDependencies) }
+    // this cannot be resolved until INSIDE a doLast {} callback, as moshiX will break otherwise!
+    // dependencies cannot be modified after this resolves them
+    private val frontendLocations by lazy { getLocations(compiler.projectDependencies) }
 
     private fun getLocations(projectDependencies: List<File>): MutableSet<File> {
         val start = System.nanoTime()
@@ -52,23 +56,26 @@ class TaskCopyFrontendFiles_(val projectDependencies: List<File>, nodeInfo: Node
     }
 
 
+    // NOTE: MUST be in doLast() call.
     @Suppress("LocalVariableName")
     fun execute() {
         println("\tCopying jar/embedded resources...")
 
-        println("\tCopying jar frontend resources to '$flowTargetDirectory'")
+        println("\tCopying jar frontend resources to '$flowNpmTargetDirectory'")
         println("\tCopying theme resources to '$themeJarTargetDirectory'")
 
         // make sure the target location exists
-        flowTargetDirectory.mkdirs()
+        flowNpmTargetDirectory.mkdirs()
 
         /////////////////////
 
         /////////////////////
+
+        val frontendLocs = frontendLocations
 
         // get all jar files having files in the 'META-INF/frontend' or 'META-INF/resources/frontend' folder.
-        println("\t\tFound ${frontendLocations.size} resources")
-        frontendLocations.forEach {
+        println("\t\tFound ${frontendLocs.size} resources")
+        frontendLocs.forEach {
             println("\t\t\t${it.name}")
         }
 
@@ -81,28 +88,28 @@ class TaskCopyFrontendFiles_(val projectDependencies: List<File>, nodeInfo: Node
 
 
         val jarContentsManager = JarContentsManager()
-        frontendLocations.forEach { location ->
+        frontendLocs.forEach { location ->
             if (location.isDirectory) {
                 TaskCopyLocalFrontendFiles.copyLocalResources(
                     File(location, Constants.RESOURCES_FRONTEND_DEFAULT),
-                    flowTargetDirectory
+                    flowNpmTargetDirectory
                 )
                 TaskCopyLocalFrontendFiles.copyLocalResources(
                     File(
                         location,
                         Constants.COMPATIBILITY_RESOURCES_FRONTEND_DEFAULT
                     ),
-                    flowTargetDirectory
+                    flowNpmTargetDirectory
                 )
             } else {
                 jarContentsManager.copyIncludedFilesFromJarTrimmingBasePath(
                     location, Constants.RESOURCES_FRONTEND_DEFAULT, // "META-INF/frontend"
-                    flowTargetDirectory, *WILDCARD_INCLUSIONS
+                    flowNpmTargetDirectory, *WILDCARD_INCLUSIONS
                 )
 
                 jarContentsManager.copyIncludedFilesFromJarTrimmingBasePath(
                     location, Constants.COMPATIBILITY_RESOURCES_FRONTEND_DEFAULT, // "META-INF/resources/frontend"
-                    flowTargetDirectory, *WILDCARD_INCLUSIONS
+                    flowNpmTargetDirectory, *WILDCARD_INCLUSIONS
                 )
 
                 jarContentsManager.copyIncludedFilesFromJarTrimmingBasePath(
@@ -114,6 +121,6 @@ class TaskCopyFrontendFiles_(val projectDependencies: List<File>, nodeInfo: Node
         }
 
         val ms = (System.nanoTime() - start) / 1000000
-        println("\t\tCopied ${frontendLocations.size} resources in $ms ms")
+        println("\t\tCopied ${frontendLocs.size} resources in $ms ms")
     }
 }
