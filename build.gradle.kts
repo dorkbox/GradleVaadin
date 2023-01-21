@@ -43,7 +43,7 @@ object Extras {
     val tags = listOf("vaadin", "undertow")
     val buildDate = Instant.now().toString()
 
-    const val vaadinUndertowVer = "14.9"
+    const val vaadinUndertowVer = "14.9.1"
 
     // These MUST be in lock-step with what the VaadinUndertow launcher defines, otherwise horrific errors can occur.
     const val vaadinVer = "14.9.4"
