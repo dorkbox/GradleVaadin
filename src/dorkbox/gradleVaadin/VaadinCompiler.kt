@@ -54,10 +54,13 @@ internal class VaadinCompiler(val project: Project) {
     }
 
     fun log() {
+        val explicitRun = config.explicitRun.get()
+
         if (config.debug) {
             println("\t\t#######")
             println("\t\tFor the compile steps, we match (for the most part) NodeTasks from Vaadin")
             println("\t\tProduction Mode: ${config.productionMode.get()}")
+            if (explicitRun) println("\t\tForcing recompile.")
             println("\t\tVaadin version: ${VaadinConfig.VAADIN_VERSION}")
             println("\t\tPolymer version: $polymerVersion")
 
@@ -72,6 +75,7 @@ internal class VaadinCompiler(val project: Project) {
             println("\t\tJsonPackage generated file: ${nodeInfo.buildDirJsonPackageFile}")
         } else {
             println("\t\tProduction Mode: ${config.productionMode.get()}")
+            if (explicitRun) println("\t\tForcing recompile.")
             println("\t\tVaadin version: ${VaadinConfig.VAADIN_VERSION}")
         }
     }

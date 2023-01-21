@@ -125,6 +125,44 @@ class Vaadin : Plugin<Project> {
             return buildName(task.project) + ":${task.name}"
         }
 
+        private fun Project.isMyTaskTheStartupTask(allTasksNames: Map<String, Task>, taskToLookFor: Task): Boolean {
+            val debug = false
+
+            val taskToLookForName = buildName(taskToLookFor)
+            if (debug) println("\tChecking for: $taskToLookForName")
+
+
+            this.gradle.startParameter.taskNames.forEach { startTaskNameOrig ->
+                val startTaskName = startTaskNameOrig.startColon()
+
+                if (debug) println("\tStart Parameters: $startTaskName")
+                var task = allTasksNames[startTaskName]
+                if (task == null) {
+                    // MAYBE it's the project parent class? gradle + intellij is weird.
+                    task = allTasksNames[buildName(this) + startTaskName]
+                }
+
+                if (task == null) {
+                    println("\tUnable to evaluate start task: $startTaskNameOrig")
+                    return false
+                }
+
+                val checkName = task.name.startColon()
+                if (debug) println("checking  $checkName :: $taskToLookForName")
+                if (checkName == taskToLookForName) {
+                    println("\t\tFound startup task: $taskToLookForName")
+                    return true
+                }
+
+                if (debug) println("checking  $checkName  :: ${taskToLookFor.name.startColon()}")
+                if (checkName == taskToLookFor.name.startColon()) {
+                    return true
+                }
+            }
+
+            return false
+        }
+
 
         // WOW... this is annoying. It must be in project.afterEvaluate, and the task dependencies MUST be BEFORE evaluate!
         // Gradle processes things in order for each stage of processing it has.
@@ -138,15 +176,21 @@ class Vaadin : Plugin<Project> {
             val taskList = LinkedList<Any>()
 
 
-            project.gradle.startParameter.taskNames.forEach { startTaskName ->
-                val startTaskName = startTaskName.startColon()
+            this.gradle.startParameter.taskNames.forEach { startTaskNameOrig ->
+                val startTaskName = startTaskNameOrig.startColon()
 
                 if (debug) println("\tStart Parameters: $startTaskName")
                 var task = allTasksNames[startTaskName]
                 if (task == null) {
                     // MAYBE it's the project parent class? gradle + intellij is weird.
-                    task = allTasksNames[buildName(project) + startTaskName]!!
+                    task = allTasksNames[buildName(this) + startTaskName]
                 }
+
+                if (task == null) {
+                    println("\tUnable to evaluate start task: $startTaskNameOrig")
+                    return false
+                }
+
                 taskList.add(task)
             }
 
@@ -175,6 +219,7 @@ class Vaadin : Plugin<Project> {
                         if (debug) println("1\t\t$taskName1")
 
                         if (taskName1 == taskToLookForName) {
+                            println("\t\tFound task: $taskToLookForName")
                             return true
                         }
 
@@ -212,6 +257,7 @@ class Vaadin : Plugin<Project> {
                             if (debug) println("\t\t${task}")
 
                             if (task == taskToLookForName) {
+                                println("\t\tFound task: $taskToLookForName")
                                 return true
                             }
 
@@ -328,9 +374,13 @@ class Vaadin : Plugin<Project> {
                 allTasksNames[buildName(it)] = it
             }
 
-            val isProdMode = project.isMyTaskAHardDependency(allTasksNames, prodMode)
-            val isDevMode = project.isMyTaskAHardDependency(allTasksNames, devMode)
-            val canRun = isProdMode || isDevMode
+            val isExplicitRun = project.isMyTaskTheStartupTask(allTasksNames, prodMode) ||
+                                          project.isMyTaskTheStartupTask(allTasksNames, devMode)
+            config.explicitRun.set(isExplicitRun)
+
+            val canRun = isExplicitRun ||
+                                   project.isMyTaskAHardDependency(allTasksNames, prodMode) ||
+                                   project.isMyTaskAHardDependency(allTasksNames, devMode)
 
             if (canRun) {
                 config.productionMode.set(project.isMyTaskAHardDependency(allTasksNames, prodMode))
@@ -339,6 +389,9 @@ class Vaadin : Plugin<Project> {
 
             generateWebComponents.apply {
                 this.enabled = canRun
+                if (isExplicitRun) {
+                    outputs.upToDateWhen { false }
+                }
 
                 outputs.files(File(nodeInfo.frontendGeneratedDir, TaskGenerateTsFiles_.TSCONFIG_JSON),
                               nodeInfo.buildDirJsonPackageFile)
@@ -350,6 +403,9 @@ class Vaadin : Plugin<Project> {
 
             prepareJsonFiles.apply {
                 this.enabled = canRun
+                if (isExplicitRun) {
+                    outputs.upToDateWhen { false }
+                }
 
                 inputs.files(nodeInfo.jsonPackageFile)
                 outputs.files(nodeInfo.buildDirJsonPackageFile,
@@ -366,6 +422,9 @@ class Vaadin : Plugin<Project> {
 
             copyJarResources.apply {
                 this.enabled = canRun
+                if (isExplicitRun) {
+                    outputs.upToDateWhen { false }
+                }
 
                 val task = TaskCopyFrontendFiles_(compiler.projectDependencies, nodeInfo)
 
@@ -385,6 +444,9 @@ class Vaadin : Plugin<Project> {
 
             copyLocalResources.apply {
                 this.enabled = canRun
+                if (isExplicitRun) {
+                    outputs.upToDateWhen { false }
+                }
 
                 inputs.dir(nodeInfo.frontendDir)
                 outputs.dir(nodeInfo.createFrontendDir())
@@ -396,6 +458,9 @@ class Vaadin : Plugin<Project> {
 
             createTokenFile.apply {
                 this.enabled = canRun
+                if (isExplicitRun) {
+                    outputs.upToDateWhen { false }
+                }
 
                 outputs.file(nodeInfo.tokenFile)
 
@@ -406,6 +471,9 @@ class Vaadin : Plugin<Project> {
 
             updateWebPack.apply {
                 this.enabled = canRun
+                if (isExplicitRun) {
+                    outputs.upToDateWhen { false }
+                }
 
                 inputs.files(nodeInfo.origWebPackFile, nodeInfo.origWebPackProdFile)
                 outputs.files(nodeInfo.webPackFile, nodeInfo.webPackProdFile, nodeInfo.webPackGeneratedFile)
@@ -417,6 +485,9 @@ class Vaadin : Plugin<Project> {
 
             enableImportsUpdate.apply {
                 this.enabled = canRun
+                if (isExplicitRun) {
+                    outputs.upToDateWhen { false }
+                }
 
                 outputs.files(nodeInfo.flowImportFile,
                               nodeInfo.flowFallbackImportFile)
@@ -441,6 +512,9 @@ class Vaadin : Plugin<Project> {
             // or we just include our own version
             generateWebPack.apply {
                 this.enabled = canRun
+                if (isExplicitRun) {
+                    outputs.upToDateWhen { false }
+                }
 
                 inputs.files(
                     "${project.projectDir}/webpack.config.js",
@@ -453,7 +527,6 @@ class Vaadin : Plugin<Project> {
                     compiler.generateWebPack()
                 }
             }
-
 
             shutdownTask.apply {
                 this.enabled = canRun

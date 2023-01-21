@@ -26,6 +26,7 @@ import java.io.File
 import java.util.*
 
 open class VaadinConfig(private val project: Project): java.io.Serializable {
+
     companion object {
         // we are locked to this version number! any change to this must reflect changes to our API, and how we access vaadin
         // so tests must be run to make sure our api is compatible with this release
@@ -52,6 +53,8 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
     // the gradle property model is retarded, but sadly the "right way to do it"
 
     val version = VAADIN_VERSION
+
+    internal var explicitRun = project.objects.property(Boolean::class.java).convention(false)
 
     /**
      * Directory where all of the source code lives
