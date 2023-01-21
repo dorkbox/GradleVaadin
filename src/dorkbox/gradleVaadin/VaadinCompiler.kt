@@ -20,13 +20,15 @@ import java.io.File
  *   https://vaadin.com/docs/v14/flow/production/tutorial-production-mode-advanced.html
  */
 @Suppress("MemberVisibilityCanBePrivate")
-internal class VaadinCompiler(val project: Project) {
+class VaadinCompiler(val project: Project) {
     private val config = VaadinConfig[project]
 
     val polymerVersion = Util.POLYMER_VERSION
 
     val nodeInfo by lazy { NodeInfo(project) }
 
+    // this cannot be resolved until INSIDE a doLast {} callback, as moshiX will break otherwise!
+    // dependencies cannot be modified after this resolves them
     val projectDependencies by lazy {
         Vaadin.resolveRuntimeDependencies(project).dependencies
             .flatMap { dep ->
@@ -57,10 +59,10 @@ internal class VaadinCompiler(val project: Project) {
         val explicitRun = config.explicitRun.get()
 
         if (config.debug) {
-            println("\t\t#######")
             println("\t\tFor the compile steps, we match (for the most part) NodeTasks from Vaadin")
+            println("\t\tDebug mode: true")
             println("\t\tProduction Mode: ${config.productionMode.get()}")
-            if (explicitRun) println("\t\tForcing recompile.")
+            if (explicitRun) println("\t\tForcing recompile: true")
             println("\t\tVaadin version: ${VaadinConfig.VAADIN_VERSION}")
             println("\t\tPolymer version: $polymerVersion")
 
@@ -75,7 +77,7 @@ internal class VaadinCompiler(val project: Project) {
             println("\t\tJsonPackage generated file: ${nodeInfo.buildDirJsonPackageFile}")
         } else {
             println("\t\tProduction Mode: ${config.productionMode.get()}")
-            if (explicitRun) println("\t\tForcing recompile.")
+            if (explicitRun) println("\t\tForcing recompile: true")
             println("\t\tVaadin version: ${VaadinConfig.VAADIN_VERSION}")
         }
     }
