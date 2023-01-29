@@ -120,7 +120,7 @@ gradlePlugin {
     vcsUrl.set(Extras.url)
 
     plugins {
-        create("GradlePublish") {
+        create("GradleVaadin") {
             id = "${Extras.group}.${Extras.id}"
             implementationClass = "dorkbox.gradleVaadin.Vaadin"
             displayName = Extras.name
