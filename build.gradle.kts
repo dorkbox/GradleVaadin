@@ -22,9 +22,9 @@ plugins {
 
     id("com.gradle.plugin-publish") version "1.1.0"
 
-    id("com.dorkbox.GradleUtils") version "3.8"
-    id("com.dorkbox.Licensing") version "2.19.1"
-    id("com.dorkbox.VersionUpdate") version "2.5"
+    id("com.dorkbox.GradleUtils") version "3.11"
+    id("com.dorkbox.Licensing") version "2.21"
+    id("com.dorkbox.VersionUpdate") version "2.6"
 
     kotlin("jvm") version "1.7.20"
 }
@@ -84,8 +84,8 @@ dependencies {
 
     // this is used to announce the version of vaadin to use with the plugin
     implementation("com.dorkbox:VaadinUndertow:${Extras.vaadinUndertowVer}")
-    implementation("com.dorkbox:Executor:3.11")
-    implementation("com.dorkbox:Version:2.4")
+    implementation("com.dorkbox:Executor:3.12")
+    implementation("com.dorkbox:Version:3.1")
 }
 
 tasks.jar.get().apply {

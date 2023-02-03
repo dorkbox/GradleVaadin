@@ -1,10 +1,10 @@
 package dorkbox.gradleVaadin.node.util
 
-import com.dorkbox.version.Version
 import com.vaadin.flow.server.frontend.FrontendTools
 import com.vaadin.flow.server.frontend.FrontendUtils
 import com.vaadin.flow.server.frontend.FrontendVersion
 import dorkbox.executor.Executor
+import dorkbox.version.Version
 import java.io.IOException
 import java.util.*
 import java.util.stream.*
@@ -84,8 +84,8 @@ open class PlatformHelper constructor(private val props: Properties = System.get
             throw IllegalStateException(
                 buildTooOldString(
                     tool, toolVersion.toString(),
-                    supported.majorVersion.toInt(),
-                    supported.minorVersion.toInt()
+                    supported.major.toInt(),
+                    supported.minor.toInt()
                 )
             )
         }

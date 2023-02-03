@@ -1,6 +1,5 @@
 package dorkbox.gradleVaadin.node.task
 
-import com.dorkbox.version.Version
 import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.frontend.Util
 import dorkbox.gradleVaadin.JsonPackageTools
@@ -11,6 +10,7 @@ import dorkbox.gradleVaadin.node.util.PlatformHelper
 import dorkbox.gradleVaadin.node.util.PlatformHelper.Companion.validateToolVersion
 import dorkbox.gradleVaadin.node.util.ProjectApiHelper
 import dorkbox.gradleVaadin.node.variant.VariantComputer
+import dorkbox.version.Version
 import elemental.json.Json
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
@@ -295,11 +295,11 @@ abstract class NodeSetupTask : DefaultTask() {
                 println("\t\tNODE Detected: $detectedVersion")
             }
 
-            var parsedVersion = Version.from(detectedVersion)
+            var parsedVersion = Version(detectedVersion)
             detectedNodeVersion = detectedVersion
 
             @Suppress("DEPRECATION")
-            val SUPPORTED_NODE_VERSION = Version.from(Constants.SUPPORTED_NODE_MAJOR_VERSION, Constants.SUPPORTED_NODE_MINOR_VERSION)
+            val SUPPORTED_NODE_VERSION = Version(Constants.SUPPORTED_NODE_MAJOR_VERSION, Constants.SUPPORTED_NODE_MINOR_VERSION)
             val nodeIsOK = validateToolVersion("node", parsedVersion, SUPPORTED_NODE_VERSION, silent)
 
             if (!nodeIsOK) {
@@ -325,11 +325,11 @@ abstract class NodeSetupTask : DefaultTask() {
                 return false
             }
 
-            parsedVersion = Version.from(detectedVersion)
+            parsedVersion = Version(detectedVersion)
             detectedNpmVersion = detectedVersion
 
             @Suppress("DEPRECATION")
-            val SUPPORTED_NPM_VERSION = Version.from(Constants.SUPPORTED_NPM_MAJOR_VERSION, Constants.SUPPORTED_NPM_MINOR_VERSION)
+            val SUPPORTED_NPM_VERSION = Version(Constants.SUPPORTED_NPM_MAJOR_VERSION, Constants.SUPPORTED_NPM_MINOR_VERSION)
             val npmIsOK = validateToolVersion("npm", parsedVersion, SUPPORTED_NPM_VERSION, silent)
 
             if (!npmIsOK) {
