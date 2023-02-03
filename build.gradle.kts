@@ -33,7 +33,9 @@ object Extras {
     // set for the project
     const val description = "Gradle Plugin to build Vaadin for use by the VaadinUndertow library"
     const val group = "com.dorkbox"
-    const val version = "14.9"
+
+    // the version here ROUGHLY tracks the major/minor version of vaadin!
+    const val version = "14.9.1"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
