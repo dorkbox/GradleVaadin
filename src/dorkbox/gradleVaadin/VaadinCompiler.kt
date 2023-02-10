@@ -37,13 +37,17 @@ class VaadinCompiler(val project: Project) {
     }
 
     val customClassFinder by lazy {
+        // we want to search java + kotlin classes!
         val sourceSets = project.extensions.getByName("sourceSets") as SourceSetContainer
 
+        // this includes kotlin files
+        val main = sourceSets.getByName("main")
+
         val classPath = mutableListOf<File>()
-        classPath.addAll(sourceSets.getByName("main").output.classesDirs.map { it.absoluteFile })
+        classPath.addAll(main.output.classesDirs.map { it.absoluteFile })
         classPath.addAll(projectDependencies)
 
-        CustomClassFinder(classPath, projectDependencies)
+        CustomClassFinder(classPath)
     }
 
     val frontendDependencies by lazy {

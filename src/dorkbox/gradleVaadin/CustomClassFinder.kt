@@ -3,7 +3,7 @@ package dorkbox.gradleVaadin
 import java.io.File
 import java.net.URL
 
-class CustomClassFinder(classPath: List<File>, projectDependencies: List<File>) : com.vaadin.flow.server.frontend.scanner.ClassFinder {
+class CustomClassFinder(classPath: List<File>) : com.vaadin.flow.server.frontend.scanner.ClassFinder {
     // Find everything annotated with the following
     //  Route.class, NpmPackage.class, NpmPackage.Container.class, WebComponentExporter.class, UIInitListener.class, VaadinServiceInitListener.class
 
@@ -11,29 +11,16 @@ class CustomClassFinder(classPath: List<File>, projectDependencies: List<File>) 
     // make sure to close this!
     private val classPathScanResult = io.github.classgraph.ClassGraph()
             .overrideClasspath(classPath)
-            .enableSystemJarsAndModules()
+//            .enableSystemJarsAndModules()
             .enableInterClassDependencies()
             .enableExternalClasses()
             .enableAllInfo()
             .scan()
 
-    private val dependencyScanResult = io.github.classgraph.ClassGraph()
-            .overrideClasspath(projectDependencies)
-            .enableSystemJarsAndModules()
-            .enableInterClassDependencies()
-            .enableExternalClasses()
-            .enableAllInfo()
-            .scan()
 
     override fun <T : Any?> loadClass(name: String): Class<T>? {
         // println("load class: $name")
-        var clazz: Class<T>? = loadClass(name, classPathScanResult)
-
-        if (clazz == null) {
-            clazz = loadClass(name, dependencyScanResult)
-        }
-
-        return clazz
+        return loadClass(name, classPathScanResult)
     }
 
     private fun <T : Any?> loadClass(name: String, scanResult: io.github.classgraph.ScanResult): Class<T>? {
@@ -56,11 +43,6 @@ class CustomClassFinder(classPath: List<File>, projectDependencies: List<File>) 
             // load this class into the current classloader
             @Suppress("UNCHECKED_CAST")
             classes.add(it.loadClass() as Class<out T>)
-
-            // we have to load all of the class dependencies for this class into the current classloader
-            it.classDependencies.forEach { dep ->
-                dep.loadClass()
-            }
         }
     }
 
@@ -95,14 +77,13 @@ class CustomClassFinder(classPath: List<File>, projectDependencies: List<File>) 
     }
 
     private fun getAnnotatedClasses(clazz: Class<out Annotation>, scanResult: io.github.classgraph.ScanResult, classes: MutableSet<Class<*>>) {
+//        println("\tSearching....")
+
         scanResult.getClassesWithAnnotation(clazz.name).forEach {
+//            println("\t\t${it.name}")
+
             // load this class into the current classloader
             classes.add(it.loadClass())
-
-            // we have to load all of the class dependencies for this class into the current classloader
-            it.classDependencies.forEach { dep ->
-                dep.loadClass()
-            }
         }
     }
 
@@ -111,6 +92,5 @@ class CustomClassFinder(classPath: List<File>, projectDependencies: List<File>) 
      */
     fun finish() {
         classPathScanResult.close()
-        dependencyScanResult.close()
     }
 }
