@@ -22,7 +22,7 @@ plugins {
 
     id("com.gradle.plugin-publish") version "1.1.0"
 
-    id("com.dorkbox.GradleUtils") version "3.11"
+    id("com.dorkbox.GradleUtils") version "3.12"
     id("com.dorkbox.Licensing") version "2.21"
     id("com.dorkbox.VersionUpdate") version "2.6"
 
@@ -35,7 +35,7 @@ object Extras {
     const val group = "com.dorkbox"
 
     // the version here ROUGHLY tracks the major/minor version of vaadin!
-    const val version = "14.9.1"
+    const val version = "14.9.2"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
@@ -70,6 +70,17 @@ licensing {
     }
 }
 
+sourceSets {
+    main {
+        java {
+            setSrcDirs(listOf("src"))
+
+            // want to include kotlin and java files for the source. 'setSrcDirs' resets includes...
+            // NOTE: if we DO NOT do this, then there will not be any sources in the "plugin sources" jar, as it expects only java
+            include("**/*.kt", "**/*.java")
+        }
+    }
+}
 
 dependencies {
     // the kotlin version is taken from the plugin, so it is not necessary to set it here
@@ -109,10 +120,6 @@ tasks.jar.get().apply {
         attributes["Implementation-Vendor"] = Extras.vendor
     }
 }
-repositories {
-    mavenCentral()
-}
-
 
 /////////////////////////////////
 ////////    Plugin Publishing + Release
