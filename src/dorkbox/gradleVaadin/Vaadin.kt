@@ -279,6 +279,14 @@ class Vaadin : Plugin<Project> {
             if (debug) println("task $taskToLookForName not found")
             return false
         }
+
+        fun vaadinRepositories(project: Project) {
+            project.repositories.apply {
+                maven { it.setUrl("https://maven.vaadin.com/vaadin-addons") } // Vaadin Addons
+                maven { it.setUrl("https://maven.vaadin.com/vaadin-prereleases") } // Pre-releases
+                maven { it.setUrl("https://oss.sonatype.org/content/repositories/vaadin-snapshots") } // Vaadin Snapshots
+            }
+        }
     }
 
     private lateinit var config: VaadinConfig
@@ -293,28 +301,24 @@ class Vaadin : Plugin<Project> {
         // Create the Plugin extension object (for users to configure publishing).
         config = VaadinConfig.create(project)
 
-        project.repositories.apply {
-            maven { it.setUrl("https://maven.vaadin.com/vaadin-addons") } // Vaadin Addons
-            maven { it.setUrl("https://maven.vaadin.com/vaadin-prereleases") } // Pre-releases
-            maven { it.setUrl("https://oss.sonatype.org/content/repositories/vaadin-snapshots") } // Vaadin Snapshots
-        }
+        vaadinRepositories(project)
 
         project.dependencies.apply {
             // API is so the dependency project can use undertow/etc without having to explicitly define it (since we already include it)
-            add("implementation", "com.vaadin:vaadin:${VaadinConfig.VAADIN_VERSION}")
-            add("implementation", "com.dorkbox:VaadinUndertow:${VaadinConfig.MAVEN_VAADIN_GRADLE_VERSION}")
+            add("api", "com.vaadin:vaadin:${VaadinConfig.VAADIN_VERSION}")
+            add("api", "com.dorkbox:VaadinUndertow:${VaadinConfig.MAVEN_VAADIN_GRADLE_VERSION}")
 
-            add("implementation", "io.undertow:undertow-core:${VaadinConfig.UNDERTOW_VERSION}")
-            add("implementation", "io.undertow:undertow-servlet:${VaadinConfig.UNDERTOW_VERSION}")
-            add("implementation", "io.undertow:undertow-websockets-jsr:${VaadinConfig.UNDERTOW_VERSION}")
+            add("api", "io.undertow:undertow-core:${VaadinConfig.UNDERTOW_VERSION}")
+            add("api", "io.undertow:undertow-servlet:${VaadinConfig.UNDERTOW_VERSION}")
+            add("api", "io.undertow:undertow-websockets-jsr:${VaadinConfig.UNDERTOW_VERSION}")
 
             // Vaadin 14.9 changed how license checking works, and doesn't include this.
-            add("implementation", "com.github.oshi:oshi-core-java11:6.4.0")
+            add("api", "com.github.oshi:oshi-core-java11:6.4.0")
 
             // license checker requires JNA
             val jnaVersion = "5.12.1"
-            add("implementation", "net.java.dev.jna:jna-jpms:${jnaVersion}")
-            add("implementation", "net.java.dev.jna:jna-platform-jpms:${jnaVersion}")
+            add("api", "net.java.dev.jna:jna-jpms:${jnaVersion}")
+            add("api", "net.java.dev.jna:jna-platform-jpms:${jnaVersion}")
         }
 
         // NOTE: NPM will ALWAYS install packages to the "node_modules" directory that is a sibling to the packages.json directory!
