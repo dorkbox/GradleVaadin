@@ -237,11 +237,7 @@ class Vaadin : Plugin<Project> {
                 config.productionMode.set(prodStartup || prodDep)
                 compiler.log()
             } else {
-                println("\tVaadin task not found!")
-                println("\tStart parameters:")
-                project.gradle.startParameter.taskNames.forEach { startTaskName ->
-                    println("\t\t$startTaskName")
-                }
+                println("\t\tVaadin compile task not found in start parameters or task graph!")
             }
 
             generateWebComponents.apply {
