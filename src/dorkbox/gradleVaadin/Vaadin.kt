@@ -30,18 +30,14 @@ import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
-import org.gradle.api.file.ConfigurableFileCollection
-import org.gradle.api.tasks.TaskCollection
-import org.gradle.api.tasks.TaskProvider
 import java.io.File
-import java.util.*
 
 /**
  * For managing Vaadin gradle tasks
  *
  * NOTE: Vaadin css resources are compiled into the stats.json file, they are NOT loaded "statically" from the webserver
  */
-@Suppress("UnstableApiUsage", "unused", "SameParameterValue", "ObjectLiteralToLambda")
+@Suppress("unused", "SameParameterValue", "ObjectLiteralToLambda")
 class Vaadin : Plugin<Project> {
     companion object {
         internal const val NODE_GROUP = "Node"
@@ -102,12 +98,6 @@ class Vaadin : Plugin<Project> {
                 dependsOn(dependencyNames.toTypedArray())
                 finalizedBy(SHUTDOWN_TASK)
 
-
-//                project.tasks.withType(Jar::class.java) {
-//            // we ALWAYS want to make sure that this task runs when jar files are created (since we consider a jar to be the final production package for this project
-//            it.dependsOn(compileProdName)
-//        }
-
                 group = "vaadin"
                 this.description = description
             }
@@ -125,38 +115,11 @@ class Vaadin : Plugin<Project> {
             return buildName(task.project) + ":${task.name}"
         }
 
-        private fun Project.isMyTaskTheStartupTask(allTasksNames: Map<String, Task>, taskToLookFor: Task): Boolean {
-            val debug = false
 
-            val taskToLookForName = buildName(taskToLookFor)
-            if (debug) println("\tChecking for: $taskToLookForName")
-
-
-            this.gradle.startParameter.taskNames.forEach { startTaskNameOrig ->
-                val startTaskName = startTaskNameOrig.startColon()
-
-                if (debug) println("\tStart Parameters: $startTaskName")
-                var task = allTasksNames[startTaskName]
-                if (task == null) {
-                    // MAYBE it's the project parent class? gradle + intellij is weird.
-                    task = allTasksNames[buildName(this) + startTaskName]
-                }
-
-                if (task == null) {
-                    println("\tUnable to evaluate start task: $startTaskNameOrig")
-                    return false
-                }
-
-                val checkName = task.name.startColon()
-                if (debug) println("checking  $checkName :: $taskToLookForName")
-                if (checkName == taskToLookForName) {
-                    if (debug) println("\t\tFound startup task: $taskToLookForName")
-                    return true
-                }
-
-                if (debug) println("checking  $checkName  :: ${taskToLookFor.name.startColon()}")
-                if (checkName == taskToLookFor.name.startColon()) {
-                    if (debug) println("\t\tFound startup task: $taskToLookForName")
+        private fun Project.isVaadinTheStartupTask(taskName: String): Boolean {
+            // get the list of startup tasks
+            this.gradle.startParameter.taskNames.forEach { startTaskName ->
+                if (startTaskName == taskName) {
                     return true
                 }
             }
@@ -164,123 +127,7 @@ class Vaadin : Plugin<Project> {
             return false
         }
 
-
-        // WOW... this is annoying. It must be in project.afterEvaluate, and the task dependencies MUST be BEFORE evaluate!
-        // Gradle processes things in order for each stage of processing it has.
-        // Task definitions will immediately execute!
-        private fun Project.isMyTaskAHardDependency(allTasksNames: Map<String, Task>, taskToLookFor: Task, rootClass: String = ":classes"): Boolean {
-            val debug = false
-
-            val taskToLookForName = buildName(taskToLookFor)
-            if (debug) println("\tLooking for: $taskToLookForName")
-
-            val taskList = LinkedList<Any>()
-
-
-            this.gradle.startParameter.taskNames.forEach { startTaskNameOrig ->
-                val startTaskName = startTaskNameOrig.startColon()
-
-                if (debug) println("\tStart Parameters: $startTaskName")
-                var task = allTasksNames[startTaskName]
-                if (task == null) {
-                    // MAYBE it's the project parent class? gradle + intellij is weird.
-                    task = allTasksNames[buildName(this) + startTaskName]
-                }
-
-                if (task == null) {
-                    println("\tUnable to evaluate start task: $startTaskNameOrig")
-                    return false
-                }
-
-                taskList.add(task)
-            }
-
-            while (taskList.isNotEmpty()) {
-                when (val task = taskList.removeFirst()) {
-                    is Array<*> -> {
-                        task.forEach {
-                            if (it != null) {
-                                taskList.add(it)
-                            }
-                        }
-                    }
-                    is TaskCollection<*> -> {
-                        task.forEach {
-                            taskList.add(it)
-                        }
-                    }
-                    is TaskProvider<*> -> {
-                        taskList.add(task.get())
-                    }
-                    is ConfigurableFileCollection -> {
-                        // do nothing. it's a file collection
-                    }
-                    is Task -> {
-                        val taskName1 = buildName(task)
-                        if (debug) println("\t\t$taskName1")
-
-                        if (taskName1 == taskToLookForName) {
-                            if (debug) println("\t\tFound task: $taskToLookForName")
-                            return true
-                        }
-
-                        task.dependsOn.forEach { dep ->
-                            if (dep is Array<*>) {
-                                dep.forEach { d1 ->
-                                    if (d1 is String) {
-                                        // maybe the dependency is relative.
-                                        var tsk = allTasksNames[d1]
-                                        if (tsk == null) {
-                                            tsk = allTasksNames["${buildName(task.project)}:$d1"]
-                                        }
-
-                                        if (tsk != null) {
-                                            taskList.add(tsk)
-                                        } else {
-                                            // no idea what to do
-                                            println("Cannot find task: $d1")
-                                        }
-                                    } else if (d1 != null) {
-                                        if (debug) println("\t\t$d1 ${d1.javaClass}")
-                                        taskList.add(d1)
-                                    }
-                                }
-                            } else {
-                                if (debug) println("\t\t$dep ${dep.javaClass}")
-                                taskList.add(dep)
-                            }
-                        }
-                    }
-                    is String -> {
-                        if (!task.startsWith(":")) {
-                            taskList.add(task.startColon())
-                        } else if (task != rootClass) {
-                            if (debug) println("\t\t${task}")
-
-                            if (task == taskToLookForName) {
-                                if (debug) println("\t\tFound task: $taskToLookForName")
-                                return true
-                            }
-
-                            val tsk = allTasksNames[task]
-                            if (tsk != null) {
-                                taskList.add(tsk)
-                            } else {
-                                println("Unable to find task for: $task")
-                            }
-                        }
-                    }
-                    else -> {
-                        if (debug) println("??:\t\t$task :: ${task?.javaClass}")
-                    }
-                }
-            }
-
-            if (debug) println("task $taskToLookForName not found")
-            return false
-        }
-
-        fun vaadinRepositories(project: Project) {
+        fun repositories(project: Project) {
             project.repositories.apply {
                 maven { it.setUrl("https://maven.vaadin.com/vaadin-addons") } // Vaadin Addons
                 maven { it.setUrl("https://maven.vaadin.com/vaadin-prereleases") } // Pre-releases
@@ -301,7 +148,7 @@ class Vaadin : Plugin<Project> {
         // Create the Plugin extension object (for users to configure publishing).
         config = VaadinConfig.create(project)
 
-        vaadinRepositories(project)
+        repositories(project)
 
         project.dependencies.apply {
             // API is so the dependency project can use undertow/etc without having to explicitly define it (since we already include it)
@@ -366,30 +213,35 @@ class Vaadin : Plugin<Project> {
             dependsOn(generateWebPack)
         }
 
-        project.afterEvaluate { project ->
+
+        project.gradle.taskGraph.whenReady { taskGraph ->
             // NOTE! our class-scanner scans COMPILED CLASSES, so it is required to depend (at some point) on class compilation!
             val compiler = VaadinConfig[project].vaadinCompiler
             val nodeInfo = compiler.nodeInfo
 
-            val allTasks = project.rootProject.getAllTasks(true).flatMap { it.value }
-            val allTasksNames = mutableMapOf<String, Task>()
+            val prodStartup = project.isVaadinTheStartupTask(compileProdName)
+            val devStartup = project.isVaadinTheStartupTask(compileDevName)
 
-            allTasks.forEach {
-//                println("${ buildName(it)}")
-                allTasksNames[buildName(it)] = it
-            }
-
-            val isExplicitRun = project.isMyTaskTheStartupTask(allTasksNames, prodMode) ||
-                                          project.isMyTaskTheStartupTask(allTasksNames, devMode)
+            val isExplicitRun = prodStartup || devStartup
             config.explicitRun.set(isExplicitRun)
 
-            val canRun = isExplicitRun ||
-                                   project.isMyTaskAHardDependency(allTasksNames, prodMode) ||
-                                   project.isMyTaskAHardDependency(allTasksNames, devMode)
 
+            val prodName = buildName(project) + compileProdName.startColon()
+            val devName = buildName(project) + compileDevName.startColon()
+
+            val prodDep = taskGraph.hasTask(prodName)
+            val devDep = taskGraph.hasTask(devName)
+
+            val canRun = isExplicitRun || prodDep || devDep
             if (canRun) {
-                config.productionMode.set(project.isMyTaskAHardDependency(allTasksNames, prodMode))
+                config.productionMode.set(prodStartup || prodDep)
                 compiler.log()
+            } else {
+                println("\tVaadin task not found!")
+                println("\tStart parameters:")
+                project.gradle.startParameter.taskNames.forEach { startTaskName ->
+                    println("\t\t$startTaskName")
+                }
             }
 
             generateWebComponents.apply {

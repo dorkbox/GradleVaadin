@@ -11,7 +11,7 @@ class CustomClassFinder(classPath: List<File>) : com.vaadin.flow.server.frontend
     // make sure to close this!
     private val classPathScanResult = io.github.classgraph.ClassGraph()
             .overrideClasspath(classPath)
-//            .enableSystemJarsAndModules()
+            .enableSystemJarsAndModules()
             .enableInterClassDependencies()
             .enableExternalClasses()
             .enableAllInfo()
