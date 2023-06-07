@@ -119,6 +119,7 @@ class NodeInfo(val project: Project) {
         val exe = Executor()
             .executable(nodeExec)
             .environment("ADBLOCK", "1")
+            .destroyOnExit()
             .useSystemEnvironment()
 
 
@@ -141,6 +142,7 @@ class NodeInfo(val project: Project) {
         val exe = Executor()
             .executable(nodeExec)
             .environment("ADBLOCK", "1")
+            .destroyOnExit()
             .useSystemEnvironment()
 
         if (nodeOptions.isNotEmpty()) {
@@ -162,6 +164,7 @@ class NodeInfo(val project: Project) {
         val exe = Executor()
             .executable(nodeExec)
             .environment("ADBLOCK", "1")
+            .destroyOnExit()
             .useSystemEnvironment()
 
         if (nodeOptions.isNotEmpty()) {
@@ -190,6 +193,7 @@ class NodeInfo(val project: Project) {
             //            .workingDirectory(File(nodeBinExec).parent)
             .environment("ADBLOCK", "1")
             .addArg(npmScript)
+            .destroyOnExit()
             .useSystemEnvironment()
 
 
