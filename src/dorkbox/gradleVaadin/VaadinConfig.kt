@@ -134,6 +134,12 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
         get() { return enablePnpm_.get() }
         set(value) { enablePnpm_.set(value)}
 
+    @get:Input
+    protected var enableCiBuild_ = project.objects.property(Boolean::class.java).convention(false)
+    var enableCiBuild: Boolean
+        get() { return enableCiBuild_.get() }
+        set(value) { enableCiBuild_.set(value)}
+
 
     @get:Input
     protected var flowDirectory_ = project.objects.property(String::class.java).convention("./$FRONTEND")

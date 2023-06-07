@@ -22,6 +22,7 @@ class NodeInfo(val project: Project) {
 
 
     val enablePnpm = config.enablePnpm
+    val enableCiBuild = config.enableCiBuild
 
 
 
