@@ -83,6 +83,7 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
 
     // this changes if the build production task is run. WE DO NOT MANUALLY CHANGE THIS, it is automatic!
     internal var productionMode = project.objects.property(Boolean::class.java).convention(false)
+    internal var defaultRun = project.objects.property(Boolean::class.java).convention(false)
 
     internal val nodeModulesDir: File
     get() { return buildDir.resolve("node_modules") }
