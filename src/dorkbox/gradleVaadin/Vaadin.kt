@@ -384,6 +384,138 @@ class Vaadin : Plugin<Project> {
         }
     }
 
+    // WOW... this is annoying. It must be in project.afterEvaluate, and the task dependencies MUST be BEFORE evaluate!
+    // Gradle processes things in order for each stage of processing it has.
+    // Task definitions will immediately execute!
+    // NOTE: we want to discover if the "task to look for" is a dependency of one of the startup tasks
+    private fun Task.isMyTaskAStartDependency(): Boolean {
+        val taskToLookFor: Task = this
+        val debug = config.debug
+
+        val allTasksNames = allTasks(this.project)
+
+        val taskToLookForName = buildName(taskToLookFor)
+        if (debug) println("\tLooking for: $taskToLookForName")
+
+        val taskList = LinkedList<Any>()
+
+        // get the starting tasks
+        this.project.gradle.startParameter.taskNames.forEach { startTaskNameOrig ->
+            val startTaskName = startTaskNameOrig.startColon()
+
+            if (taskToLookForName == startTaskName) {
+                if (debug) println("\t\tFound task: $taskToLookForName")
+                return true
+            }
+
+            if (debug) println("\tStart Parameters: $startTaskName")
+            var task = allTasksNames[startTaskName]
+            if (task == null) {
+                // MAYBE it's the project parent class? gradle + intellij is weird.
+                task = allTasksNames[buildName(this) + startTaskName]
+            }
+
+            if (task == null) {
+                if (debug) println("\tUnable to evaluate start task: $startTaskNameOrig")
+                return false
+            }
+
+            taskList.add(task)
+        }
+
+        while (taskList.isNotEmpty()) {
+            when (val task = taskList.removeFirst()) {
+                is Array<*> -> {
+                    if (debug) println("\t\t$task :: ${task.javaClass}")
+                    task.forEach {
+                        if (it != null) {
+                            taskList.add(it)
+                        }
+                    }
+                }
+                is TaskCollection<*> -> {
+                    if (debug) println("\t\t$task :: ${task.javaClass}")
+                    task.forEach {
+                        taskList.add(it)
+                    }
+                }
+                is TaskProvider<*> -> {
+                    if (debug) println("\t\t$task :: ${task.javaClass}")
+                    taskList.add(task.get())
+                }
+                is ConfigurableFileCollection -> {
+                    // do nothing. it's a file collection
+                    if (debug) println("\t\t$task :: ${task.javaClass}")
+                }
+                is String -> {
+                    if (debug) println("\t\t$task :: ${task.javaClass}")
+                    if (!task.startsWith(":")) {
+                        taskList.add(task.startColon())
+                    } else {
+                        if (debug) println("\t\t${task}")
+
+                        if (task == taskToLookForName) {
+                            if (debug) println("\t\tFound task: $taskToLookForName")
+                            return true
+                        }
+
+                        val tsk = allTasksNames[task]
+                        if (tsk != null) {
+                            taskList.add(tsk)
+                        } else {
+                            if (debug) println("Unable to find task for: $task")
+                        }
+                    }
+                }
+                is Task -> {
+                    if (debug) println("\t\t$task :: ${task.javaClass}")
+                    // THIS DOES THE ACTUAL WORK TO SEE IF WE ARE THE TASK WE ARE LOOKING FOR
+                    val taskName1 = buildName(task)
+                    if (debug) println("1\t\t$taskName1")
+
+                    if (taskName1 == taskToLookForName) {
+                        if (debug) println("\t\tFound task: $taskToLookForName")
+                        return true
+                    }
+
+                    task.dependsOn.forEach { dep ->
+                        if (dep is Array<*>) {
+                            dep.forEach { d1 ->
+                                if (d1 is String) {
+                                    // maybe the dependency is relative.
+                                    var tsk = allTasksNames[d1]
+                                    if (tsk == null) {
+                                        tsk = allTasksNames["${buildName(task.project)}:$d1"]
+                                    }
+
+                                    if (tsk != null) {
+                                        taskList.add(tsk)
+                                    } else {
+                                        // no idea what to do
+                                        if (debug) println("Cannot find task: $d1")
+                                    }
+                                } else if (d1 != null) {
+                                    if (debug) println("\t\t$d1 ${d1.javaClass}")
+                                    taskList.add(d1)
+                                }
+                            }
+                        } else {
+                            if (debug) println("\t\t$dep ${dep.javaClass}")
+                            taskList.add(dep)
+                        }
+                    }
+                }
+                else -> {
+                    if (debug) println("??:\t\t$task :: ${task?.javaClass}")
+                }
+            }
+        }
+
+        if (debug) println("task $taskToLookForName not found")
+        return false
+    }
+
+
     // required to make sure the plugins are correctly applied. ONLY applying it to the project WILL NOT work.
     // The plugin must also be applied to the root project
     private fun Project.applyId(id: String) {
