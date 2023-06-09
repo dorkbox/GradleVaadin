@@ -116,10 +116,23 @@ class Vaadin : Plugin<Project> {
         }
 
 
-        private fun Project.isVaadinTheStartupTask(taskName: String): Boolean {
+        private fun Project.isStartupTask(vararg taskNames: String): Boolean {
             // get the list of startup tasks
             this.gradle.startParameter.taskNames.forEach { startTaskName ->
-                if (startTaskName == taskName) {
+                if (taskNames.contains(startTaskName)) {
+                    return true
+                }
+            }
+
+            return false
+        }
+
+        private fun Project.isStartupTask(vararg tasks: Task): Boolean {
+            val taskNames = tasks.map { it.name }
+
+            // get the list of startup tasks
+            this.gradle.startParameter.taskNames.forEach { startTaskName ->
+                if (taskNames.contains(startTaskName)) {
                     return true
                 }
             }
