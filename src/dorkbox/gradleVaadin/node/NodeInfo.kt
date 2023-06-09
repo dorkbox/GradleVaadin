@@ -53,6 +53,7 @@ class NodeInfo(val project: Project) {
     val origWebPackProdFile = sourceDir.resolve("webpack.production.js")
 
     val jsonPackageFile = sourceDir.resolve(Constants.PACKAGE_JSON)
+    val jsonPackageLockFile = sourceDir.resolve("package-lock.json")
     val buildDirJsonPackageFile = buildDir.resolve(Constants.PACKAGE_JSON)
     val buildDirJsonPackageLockFile = buildDir.resolve("package-lock.json")
 
