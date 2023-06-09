@@ -15,9 +15,6 @@ object TaskUpdatePackages_ {
 
         println("\tUpdating package dependencies in $buildDir")
 
-        val logger = Util.logger
-        logger.enable = !nodeInfo.debug
-
         val packageUpdater = object: TaskUpdatePackages(
             /* finder = */ classFinder,
             /* frontendDependencies = */ frontendDependenciesScanner,
@@ -27,12 +24,11 @@ object TaskUpdatePackages_ {
             /* enablePnpm = */ enablePnpm
         ) {
             public override fun log(): Logger {
-                return logger
+                return Util.logger
             }
         }
 
         packageUpdater.execute()
-        logger.enable = nodeInfo.debug
 
         return packageUpdater
     }
