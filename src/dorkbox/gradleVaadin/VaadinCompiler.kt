@@ -21,6 +21,13 @@ import java.io.File
  */
 @Suppress("MemberVisibilityCanBePrivate")
 class VaadinCompiler(val project: Project) {
+    companion object {
+        /**
+         * Gets the version number.
+         */
+        const val version = "14.9.5"
+    }
+
     private val config = VaadinConfig[project]
 
     val polymerVersion = Util.POLYMER_VERSION
@@ -56,7 +63,7 @@ class VaadinCompiler(val project: Project) {
     // SEE: com.vaadin.flow.server.startup.DevModeInitializer
 
     init {
-        println("\tInitializing the vaadin compiler")
+        println("\tInitializing the vaadin compiler.")
     }
 
     fun log() {
@@ -65,9 +72,14 @@ class VaadinCompiler(val project: Project) {
         if (config.debug) {
             println("\t\tFor the compile steps, we match (for the most part) NodeTasks from Vaadin")
             println("\t\tDebug mode: true")
-            println("\t\tProduction Mode: ${config.productionMode.get()}")
-            if (explicitRun) println("\t\tForcing recompile: true")
-            println("\t\tVaadin version: ${VaadinConfig.VAADIN_VERSION}")
+        }
+
+        println("\t\tProduction Mode: ${config.productionMode.get()}")
+        if (explicitRun) println("\t\tForcing recompile: true")
+        println("\t\tCompiler version: $version")
+        println("\t\tVaadin version: ${VaadinConfig.VAADIN_VERSION}")
+
+        if (config.debug) {
             println("\t\tPolymer version: $polymerVersion")
 
             println("\t\tBase Dir: ${config.projectDir}")
@@ -77,12 +89,8 @@ class VaadinCompiler(val project: Project) {
             println("\t\tGenerated Dir: ${nodeInfo.frontendGeneratedDir}")
             println("\t\tWebPack Executable: ${nodeInfo.webPackExecutableFile}")
 
-            println("\t\tJsonPackageFile: ${nodeInfo.jsonPackageFile}")
+            println("\t\tJsonPackage File: ${nodeInfo.jsonPackageFile}")
             println("\t\tJsonPackage generated file: ${nodeInfo.buildDirJsonPackageFile}")
-        } else {
-            println("\t\tProduction Mode: ${config.productionMode.get()}")
-            if (explicitRun) println("\t\tForcing recompile: true")
-            println("\t\tVaadin version: ${VaadinConfig.VAADIN_VERSION}")
         }
     }
 

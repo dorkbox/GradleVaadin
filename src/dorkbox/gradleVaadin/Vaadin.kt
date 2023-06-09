@@ -160,12 +160,11 @@ class Vaadin : Plugin<Project> {
             add("api", "io.undertow:undertow-websockets-jsr:${VaadinConfig.UNDERTOW_VERSION}")
 
             // Vaadin 14.9 changed how license checking works, and doesn't include this.
-            add("api", "com.github.oshi:oshi-core-java11:6.4.0")
+            add("api", "com.github.oshi:oshi-core-java11:${VaadinConfig.OSHI_VERSION}")
 
             // license checker requires JNA
-            val jnaVersion = "5.12.1"
-            add("api", "net.java.dev.jna:jna-jpms:${jnaVersion}")
-            add("api", "net.java.dev.jna:jna-platform-jpms:${jnaVersion}")
+            add("api", "net.java.dev.jna:jna-jpms:${VaadinConfig.JNA_VERSION}")
+            add("api", "net.java.dev.jna:jna-platform-jpms:${VaadinConfig.JNA_VERSION}")
         }
 
         // NOTE: NPM will ALWAYS install packages to the "node_modules" directory that is a sibling to the packages.json directory!

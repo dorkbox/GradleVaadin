@@ -34,6 +34,9 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
         const val VAADIN_VERSION = VaadinApplication.vaadinVersion
         const val UNDERTOW_VERSION = VaadinApplication.undertowVersion
 
+        const val OSHI_VERSION = VaadinApplication.oshiVersion
+        const val JNA_VERSION = VaadinApplication.jnaVersion
+
 
         // This will always match what the build file imports!
         const val MAVEN_VAADIN_GRADLE_VERSION = VaadinApplication.version
