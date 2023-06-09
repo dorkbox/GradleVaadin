@@ -1,11 +1,13 @@
 package dorkbox.gradleVaadin
 
-import elemental.json.*
+import elemental.json.Json
+import elemental.json.JsonArray
+import elemental.json.JsonObject
+import elemental.json.JsonType
+import elemental.json.JsonValue
 import elemental.json.impl.JsonUtil
 import org.jetbrains.kotlin.gradle.internal.ensureParentDirsCreated
 import java.io.File
-import java.security.MessageDigest
-import java.security.NoSuchAlgorithmException
 
 class JsonPackageTools {
     companion object {
@@ -150,6 +152,17 @@ class JsonPackageTools {
 
         fun addDependency(json: JsonObject, key: String, value: Boolean, overwrite: Boolean = false): Int {
             if (!json.hasKey(key) || (overwrite && json.getBoolean(key) != value)) {
+                json.put(key, value)
+                println("\t\tAdded '$key':'$value'")
+
+                return 1
+            }
+
+            return 0
+        }
+
+        fun addDependency(json: JsonObject, key: String, value: String, overwrite: Boolean = false): Int {
+            if (!json.hasKey(key) || (overwrite && json.getString(key) != value)) {
                 json.put(key, value)
                 println("\t\tAdded '$key':'$value'")
 
