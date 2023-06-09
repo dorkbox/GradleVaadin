@@ -442,28 +442,7 @@ class ConsoleLog(val name_: String = "",
 
     val CONFIG_PARAMS = object: Any() {}
 
-    /**
-     * To avoid intermingling of log messages and associated stack traces, the two
-     * operations are done in a synchronized block.
-     *
-     * @param buf
-     * @param t
-     */
-    fun write(buf: java.lang.StringBuilder, t: Throwable?) {
-        if (enable) {
-            synchronized(CONFIG_PARAMS) {
-                targetStream.println(buf.toString())
-                writeThrowable(t, targetStream)
-                targetStream.flush()
-            }
-        }
-    }
-
-    protected fun writeThrowable(t: Throwable?, targetStream: PrintStream?) {
-        t?.printStackTrace(targetStream)
-    }
-
-    private fun computeShortName(): String? {
+    private fun computeShortName(): String {
         return name_.substring(name_.lastIndexOf(".") + 1)
     }
 
@@ -479,6 +458,10 @@ class ConsoleLog(val name_: String = "",
         arguments: Array<Any>?,
         t: Throwable?
     ) {
+        if (!enable) {
+            return
+        }
+
         val buf = StringBuilder(32)
         buf.append(messagePreface)
 
@@ -520,6 +503,12 @@ class ConsoleLog(val name_: String = "",
 
         // Append the message
         buf.append(tp.message)
-        write(buf, t)
+
+
+        synchronized(CONFIG_PARAMS) {
+            targetStream.println(buf.toString())
+            t?.printStackTrace(targetStream)
+            targetStream.flush()
+        }
     }
 }
