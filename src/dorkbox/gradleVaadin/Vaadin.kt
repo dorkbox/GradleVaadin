@@ -154,6 +154,27 @@ class Vaadin : Plugin<Project> {
     /** Useful, so we can announce the version of vaadin we are using */
     val version = VaadinApplication.vaadinVersion
 
+    @Volatile
+    private var allTasks: Map<String, Task>? = null
+    private fun allTasks(project: Project): Map<String, Task> {
+        var tasks = this.allTasks
+
+        if (tasks == null) {
+            val allTasks = project.rootProject.getAllTasks(true).flatMap { it.value }
+            val allTasksNames = mutableMapOf<String, Task>()
+
+            allTasks.forEach {
+//                println("\t${buildName(it)}")
+                allTasksNames[buildName(it)] = it
+            }
+
+            tasks = allTasksNames
+            this.allTasks = tasks
+        }
+
+        return tasks
+    }
+
     override fun apply(project: Project) {
         // https://discuss.gradle.org/t/can-a-plugin-itself-add-buildscript-dependencies-and-then-apply-a-plugin/25039/4
         project.applyId("java")
