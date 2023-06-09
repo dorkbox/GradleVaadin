@@ -2,11 +2,21 @@ package dorkbox.gradleVaadin
 
 import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.InitParameters
-import com.vaadin.flow.server.frontend.*
+import com.vaadin.flow.server.frontend.FrontendWebComponentGenerator
+import com.vaadin.flow.server.frontend.TaskCopyLocalFrontendFiles_
+import com.vaadin.flow.server.frontend.TaskCreatePackageJson_
+import com.vaadin.flow.server.frontend.TaskGenerateTsFiles_
+import com.vaadin.flow.server.frontend.TaskInstallWebpackPlugins_
+import com.vaadin.flow.server.frontend.TaskRunNpmInstall_
+import com.vaadin.flow.server.frontend.TaskUpdateImports_
+import com.vaadin.flow.server.frontend.TaskUpdatePackages_
+import com.vaadin.flow.server.frontend.TaskUpdateThemeImport_
+import com.vaadin.flow.server.frontend.TaskUpdateWebpack_
+import com.vaadin.flow.server.frontend.Util
 import com.vaadin.flow.server.frontend.scanner.FrontendDependencies
-
 import dorkbox.gradleVaadin.node.NodeInfo
 import elemental.json.Json
+import elemental.json.JsonObject
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.gradle.api.Project
@@ -62,12 +72,12 @@ class VaadinCompiler(val project: Project) {
     }
     // SEE: com.vaadin.flow.server.startup.DevModeInitializer
 
-    init {
-        println("\tInitializing the vaadin compiler.")
-    }
 
     fun log() {
+        println("\tInitializing the vaadin compiler")
+
         val explicitRun = config.explicitRun.get()
+        val defaultRun = config.defaultRun.get()
 
         if (config.debug) {
             println("\t\tFor the compile steps, we match (for the most part) NodeTasks from Vaadin")
@@ -76,6 +86,7 @@ class VaadinCompiler(val project: Project) {
 
         println("\t\tProduction Mode: ${config.productionMode.get()}")
         if (explicitRun) println("\t\tForcing recompile: true")
+        if (defaultRun) println("\t\tForcing default compile: true")
         println("\t\tCompiler version: $version")
         println("\t\tVaadin version: ${VaadinConfig.VAADIN_VERSION}")
 
@@ -109,14 +120,50 @@ class VaadinCompiler(val project: Project) {
     }
 
     // dev
-    fun createMissingPackageJson() {
-        TaskCreatePackageJson_.execute(nodeInfo)
-    }
-
-    // dev
     fun prepareJsonFiles() {
+        // createMissingPackageJson
+        TaskCreatePackageJson_.execute(nodeInfo)
+
         // now we have to update the package.json file with whatever version of into we have specified on the classpath
         val packageUpdater = TaskUpdatePackages_.execute(customClassFinder, frontendDependencies, nodeInfo)
+
+        // we want to also MERGE in our saved (non-generated) json file contents to the generated file
+        println("\tMerging original json into generated json.")
+
+        val origJson = Util.getJsonFileContent(nodeInfo.jsonPackageFile)
+        val genJson = Util.getJsonFileContent(nodeInfo.buildDirJsonPackageFile)
+
+        JsonPackageTools.mergeJson(origJson, genJson)
+        Util.disableVaadinStatistics(genJson)
+
+        println("\tAdding required dependencies")
+        // we enhance the default webpack tools
+        val devDeps = genJson.get<JsonObject>("devDependencies")
+        val vaadinDevDeps = genJson.get<JsonObject>("vaadin").get<JsonObject>("devDependencies")
+
+        JsonPackageTools.addDependency(devDeps, "core-js", "3.19.3")
+        JsonPackageTools.addDependency(devDeps, "terser-webpack-plugin", "4.2.3")
+        JsonPackageTools.addDependency(devDeps, "webpack-bundle-analyzer", "4.5.0")
+
+        JsonPackageTools.addDependency(vaadinDevDeps, "core-js", "3.19.3")
+        JsonPackageTools.addDependency(vaadinDevDeps, "terser-webpack-plugin", "4.2.3")
+        JsonPackageTools.addDependency(vaadinDevDeps, "webpack-bundle-analyzer", "4.5.0")
+
+        JsonPackageTools.writeJson(nodeInfo.buildDirJsonPackageFile, genJson)
+
+
+        // also copy/move over lock file!
+        if (nodeInfo.jsonPackageLockFile.canRead()) {
+            println("\tMerging original json-lock into generated json-lock.")
+
+            val origJsonLock = Util.getJsonFileContent(nodeInfo.jsonPackageLockFile)
+            val genJsonLock = Util.getJsonFileContent(nodeInfo.buildDirJsonPackageLockFile)
+
+            JsonPackageTools.mergeJson(origJsonLock, genJsonLock)
+            JsonPackageTools.writeJson(nodeInfo.buildDirJsonPackageLockFile, genJsonLock)
+        }
+
+
         TaskRunNpmInstall_.execute(customClassFinder, nodeInfo, packageUpdater)
         TaskInstallWebpackPlugins_.execute(nodeInfo.nodeModulesDir)
     }
@@ -149,7 +196,6 @@ class VaadinCompiler(val project: Project) {
 
         if (!productionMode) {
             // used for defining folder paths for dev server
-
             buildInfo.put(Constants.NPM_TOKEN, config.buildDir.absolutePath)
             buildInfo.put(Constants.GENERATED_TOKEN, nodeInfo.frontendGeneratedDir.absolutePath)
             buildInfo.put(Constants.FRONTEND_TOKEN, nodeInfo.frontendDir.absolutePath)
@@ -164,6 +210,53 @@ class VaadinCompiler(val project: Project) {
         if (config.debug) {
             println("\tToken content:\n ${nodeInfo.tokenFile.readText(Charsets.UTF_8)}")
         }
+    }
+
+    fun validTokenFile() : Boolean {
+        if (!nodeInfo.tokenFile.canRead()) {
+            return false
+        }
+
+        val tokenFile = Util.getJsonFileContent(nodeInfo.tokenFile)
+        if (!tokenFile.hasKey(InitParameters.SERVLET_PARAMETER_COMPATIBILITY_MODE)) return false
+        if (!tokenFile.hasKey(InitParameters.SERVLET_PARAMETER_PRODUCTION_MODE)) return false
+        if (!tokenFile.hasKey("polymer.version")) return false
+
+        if (!tokenFile.hasKey(InitParameters.SERVLET_PARAMETER_ENABLE_PNPM)) return false
+        if (!tokenFile.hasKey(InitParameters.SERVLET_PARAMETER_ENABLE_DEV_SERVER)) return false
+
+        if (!tokenFile.hasKey(dorkbox.vaadin.util.VaadinConfig.DEBUG)) return false
+
+        val productionMode = tokenFile.getBoolean(InitParameters.SERVLET_PARAMETER_PRODUCTION_MODE)
+
+        if (!productionMode) {
+            if (!tokenFile.hasKey(Constants.NPM_TOKEN)) return false
+            if (!tokenFile.hasKey(Constants.GENERATED_TOKEN)) return false
+            if (!tokenFile.hasKey(Constants.FRONTEND_TOKEN)) return false
+        } else {
+            // only applicable when in production mode
+            if (!tokenFile.hasKey(dorkbox.vaadin.util.VaadinConfig.EXTRACT_JAR)) return false
+        }
+
+        return true
+    }
+
+    fun tokenFileIsProdMode() : Boolean {
+        if (!nodeInfo.tokenFile.canRead()) {
+            return false
+        }
+
+        val tokenFile = Util.getJsonFileContent(nodeInfo.tokenFile)
+        return tokenFile.getBoolean(InitParameters.SERVLET_PARAMETER_PRODUCTION_MODE)
+    }
+
+    fun tokenFileIsDevMode() : Boolean {
+        if (!nodeInfo.tokenFile.canRead()) {
+            return false
+        }
+
+        val tokenFile = Util.getJsonFileContent(nodeInfo.tokenFile)
+        return !tokenFile.getBoolean(InitParameters.SERVLET_PARAMETER_PRODUCTION_MODE)
     }
 
     // dev
