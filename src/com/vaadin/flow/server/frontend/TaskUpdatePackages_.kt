@@ -6,7 +6,7 @@ import dorkbox.gradleVaadin.node.NodeInfo
 import org.slf4j.Logger
 
 /**
- * flow-server-2.8.3
+ * flow-server-2.9.2
  */
 object TaskUpdatePackages_ {
     fun execute(classFinder: ClassFinder, frontendDependenciesScanner: FrontendDependenciesScanner, nodeInfo: NodeInfo): TaskUpdatePackages {
@@ -15,17 +15,24 @@ object TaskUpdatePackages_ {
 
         println("\tUpdating package dependencies in $buildDir")
 
-        val packageUpdater = object: TaskUpdatePackages(classFinder, frontendDependenciesScanner,
-            buildDir,
-            buildDir,
-            false, enablePnpm
+        val logger = Util.logger
+        logger.enable = !nodeInfo.debug
+
+        val packageUpdater = object: TaskUpdatePackages(
+            /* finder = */ classFinder,
+            /* frontendDependencies = */ frontendDependenciesScanner,
+            /* npmFolder = */ buildDir,
+            /* generatedPath = */ buildDir,
+            /* forceCleanUp = */ false,
+            /* enablePnpm = */ enablePnpm
         ) {
             public override fun log(): Logger {
-                return Util.logger
+                return logger
             }
         }
 
         packageUpdater.execute()
+        logger.enable = nodeInfo.debug
 
         return packageUpdater
     }

@@ -1,12 +1,11 @@
 package com.vaadin.flow.server.frontend
 
-import dorkbox.gradleVaadin.JsonPackageTools
 import dorkbox.gradleVaadin.node.NodeInfo
 import org.jetbrains.kotlin.gradle.internal.ensureParentDirsCreated
 import org.slf4j.Logger
 
 /**
- * flow-server-2.8.3
+ * flow-server-2.9.2
  */
 object TaskCreatePackageJson_ {
     fun execute(nodeInfo: NodeInfo) {
@@ -22,16 +21,7 @@ object TaskCreatePackageJson_ {
         // make sure the flow parent dir exists
         nodeInfo.flowJsonPackageFile.ensureParentDirsCreated()
 
-        // we want to also MERGE in our saved (non-generated) json file contents to the generated file
-        println("\tMerging original json into generated json.")
-
-        val origJson = Util.getJsonFileContent(nodeInfo.jsonPackageFile)
-        val genJson = Util.getJsonFileContent(nodeInfo.buildDirJsonPackageFile)
-        JsonPackageTools.mergeJson(origJson, genJson)
-        Util.disableVaadinStatistics(genJson)
-
-        JsonPackageTools.writeJson(nodeInfo.buildDirJsonPackageFile, genJson)
-
+        // create json file in BUILD dir
         val task = object: TaskCreatePackageJson(nodeInfo.buildDir, nodeInfo.frontendGeneratedDir) {
             override fun log(): Logger {
                 return Util.logger
