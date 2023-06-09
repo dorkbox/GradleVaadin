@@ -13,20 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import java.time.Instant
 
 gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS_FULL   // always show the stacktrace!
 
 plugins {
     `java-gradle-plugin`
 
-    id("com.gradle.plugin-publish") version "1.1.0"
+    id("com.gradle.plugin-publish") version "1.2.0"
 
-    id("com.dorkbox.GradleUtils") version "3.12"
-    id("com.dorkbox.Licensing") version "2.21"
-    id("com.dorkbox.VersionUpdate") version "2.6"
+    id("com.dorkbox.GradleUtils") version "3.17"
+    id("com.dorkbox.Licensing") version "2.22"
+    id("com.dorkbox.VersionUpdate") version "2.8"
 
-    kotlin("jvm") version "1.7.20"
+    kotlin("jvm") version "1.8.0"
 }
 
 object Extras {
@@ -35,7 +34,7 @@ object Extras {
     const val group = "com.dorkbox"
 
     // the version here ROUGHLY tracks the major/minor version of vaadin!
-    const val version = "14.9.4"
+    const val version = "14.9.5"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
@@ -43,16 +42,14 @@ object Extras {
     const val vendor = "Dorkbox LLC"
     const val url = "https://git.dorkbox.com/dorkbox/GradleVaadin"
     val tags = listOf("vaadin", "undertow")
-    val buildDate = Instant.now().toString()
 
-    const val vaadinUndertowVer = "14.9.1"
+    const val vaadinUndertowVer = "14.9.2"
 
     // These MUST be in lock-step with what the VaadinUndertow launcher defines, otherwise horrific errors can occur.
-    const val vaadinVer = "14.9.4"
+    const val vaadinVer = "14.10.1"
     const val undertowVer = "2.2.21.Final"
 
-    const val vaadinFlowVer = "2.8.3"
-
+    const val vaadinFlowVer = "2.9.2"
 }
 
 ///////////////////////////////
@@ -87,17 +84,17 @@ dependencies {
     compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin")
 
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
 
     // Uber-fast, ultra-lightweight Java classpath and module path scanner
-    implementation("io.github.classgraph:classgraph:4.8.154")
+    implementation("io.github.classgraph:classgraph:4.8.160")
 
     //  implementation("com.vaadin:vaadin:${Extras.vaadinVer}") // NOTE: uncomment for testing ONLY
     implementation("com.vaadin:flow-server:${Extras.vaadinFlowVer}")
 
     // this is used to announce the version of vaadin to use with the plugin
     implementation("com.dorkbox:VaadinUndertow:${Extras.vaadinUndertowVer}")
-    implementation("com.dorkbox:Executor:3.12")
+    implementation("com.dorkbox:Executor:3.13")
     implementation("com.dorkbox:Version:3.1")
 }
 
@@ -116,7 +113,7 @@ tasks.jar.get().apply {
         attributes["Specification-Vendor"] = Extras.vendor
 
         attributes["Implementation-Title"] = "${Extras.group}.${Extras.id}"
-        attributes["Implementation-Version"] = Extras.buildDate
+        attributes["Implementation-Version"] = GradleUtils.now()
         attributes["Implementation-Vendor"] = Extras.vendor
     }
 }
