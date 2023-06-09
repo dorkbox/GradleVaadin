@@ -16,7 +16,7 @@
 package dorkbox.gradleVaadin
 
 import com.vaadin.flow.server.frontend.TaskCopyFrontendFiles_
-import com.vaadin.flow.server.frontend.TaskGenerateTsFiles_
+import com.vaadin.flow.server.frontend.Util
 import dorkbox.gradleVaadin.node.deps.DependencyScanner
 import dorkbox.gradleVaadin.node.npm.proxy.ProxySettings
 import dorkbox.gradleVaadin.node.npm.task.NpmInstallTask
@@ -30,7 +30,11 @@ import org.gradle.api.Action
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.Task
+import org.gradle.api.file.ConfigurableFileCollection
+import org.gradle.api.tasks.TaskCollection
+import org.gradle.api.tasks.TaskProvider
 import java.io.File
+import java.util.*
 
 /**
  * For managing Vaadin gradle tasks
@@ -219,14 +223,20 @@ class Vaadin : Plugin<Project> {
             })
         }
 
-        val generateWebComponents = project.newTask(listOf(NodeSetupTask.NAME, "classes"), "generateWebComponents", "Generate Vaadin components")
+
+        val nodeSetupTask = project.tasks.getByName(NodeSetupTask.NAME).apply {
+            dependsOn("classes") // this must run AFTER classes has run!
+        }
+
+        val generateWebComponents = project.newTask(nodeSetupTask, "generateWebComponents", "Generate Vaadin components")
 
         val prepareJsonFiles = project.newTask(generateWebComponents, "prepareJsonFiles", "Prepare Vaadin frontend")
         val copyJarResources = project.newTask(prepareJsonFiles, "copyJarResources", "Compile Vaadin resources for Production")
         val copyLocalResources = project.newTask(copyJarResources, "copyLocalResources", "Compile Vaadin resources for Production")
+
         val createTokenFile = project.newTask(copyLocalResources, "createTokenFile", "Create Vaadin token file")
 
-        val devMode = project.newTask(createTokenFile, compileDevName, "Compile Vaadin resources for Development")
+        val devModeTask = project.newTask(createTokenFile, compileDevName, "Compile Vaadin resources for Development")
 
         val updateWebPack = project.newTask(createTokenFile, "updateWebPack", "Compile Vaadin resources for Production")
 
@@ -235,15 +245,12 @@ class Vaadin : Plugin<Project> {
         val enableImportsUpdate = project.newTask(updateWebPack, "enableImportsUpdate", "Compile Vaadin resources for Production")
         val generateWebPack = project.newTask(enableImportsUpdate, "generateWebPack", "Compile Vaadin resources for Production")
 
-        val prodMode = project.newTask(generateWebPack, compileProdName, "Compile Vaadin resources for Production")
+        val prodModeTask = project.newTask(generateWebPack, compileProdName, "Compile Vaadin resources for Production")
 
-
-
-        project.tasks.getByName("jar").apply {
-            // NOTE: kotlin-jvm plugin will ALWAYS build jars during a compile!
-            // we ALWAYS want to make sure that this task runs when jar files are created (since we consider a jar to be the final production package for this project.
-            // Additionally, there are problems when we try to include resources that are implicitly used by another task. Gradle hates it.
-            dependsOn(generateWebPack)
+        val classesTask = project.tasks.getByName("classes")
+        classesTask.apply {
+            // this will make sure that we will have a DEFAULT build (in the event a developer doesn't run a frontend build first)
+            finalizedBy(prodModeTask)
         }
 
 
@@ -252,35 +259,61 @@ class Vaadin : Plugin<Project> {
             val compiler = VaadinConfig[project].vaadinCompiler
             val nodeInfo = compiler.nodeInfo
 
-            val prodStartup = project.isVaadinTheStartupTask(compileProdName)
-            val devStartup = project.isVaadinTheStartupTask(compileDevName)
+            val cleanDep = project.tasks.getByName("clean").isMyTaskAStartDependency()
+            val classesDep = classesTask.isMyTaskAStartDependency()
+            val hasTokenFile = nodeInfo.tokenFile.canRead()
 
+            val prodStartup = project.isStartupTask(compileProdName)
+            val devStartup = project.isStartupTask(compileDevName)
             val isExplicitRun = prodStartup || devStartup
+
             config.explicitRun.set(isExplicitRun)
 
+            // if build prod was specified OR (not build dev and token file says prod mode)
+            val tokenFileIsProdMode = compiler.tokenFileIsProdMode()
+            val tokenFileIsDevMode = compiler.tokenFileIsDevMode()
 
-            val prodName = buildName(project) + compileProdName.startColon()
-            val devName = buildName(project) + compileDevName.startColon()
+            // maybe we have an initial compile, BUT THERE IS NO TOKEN FILE (or a corrupt token file)!
+            // we will then do a full production compile - which is the default
+            val defaultBuild = !cleanDep && !isExplicitRun && classesDep && !compiler.validTokenFile()
 
-            val prodDep = taskGraph.hasTask(prodName)
-            val devDep = taskGraph.hasTask(devName)
+            config.defaultRun.set(defaultBuild)
 
-            val canRun = isExplicitRun || prodDep || devDep
-            if (canRun) {
-                config.productionMode.set(prodStartup || prodDep)
-                compiler.log()
-            } else {
-                println("\t\tVaadin compile task not found in start parameters or task graph!")
+            val shouldRun = isExplicitRun || defaultBuild
+            if (!cleanDep) {
+                val prodMode = prodStartup || (tokenFileIsProdMode && !devStartup && !defaultBuild) || (defaultBuild)
+                val devMode = devStartup || (tokenFileIsDevMode && !prodStartup && !defaultBuild)
+
+                if (shouldRun || prodMode || devMode) {
+                    config.productionMode.set(prodStartup || prodMode)
+                    compiler.log()
+                } else {
+                    println("\t\tVaadin compile task not found in start parameters or task graph!")
+                }
+            }
+
+            var didRun = false
+
+            Util.logger.enable = !nodeInfo.debug
+
+            nodeSetupTask.apply {
+                this.enabled = shouldRun || isMyTaskAStartDependency()
+                didRun = this.enabled
+                if (isExplicitRun) {
+                    outputs.upToDateWhen { false }
+                }
             }
 
             generateWebComponents.apply {
-                this.enabled = canRun
+                this.enabled = shouldRun || isMyTaskAStartDependency()
+                didRun = didRun || this.enabled
                 if (isExplicitRun) {
                     outputs.upToDateWhen { false }
                 }
 
-                outputs.files(File(nodeInfo.frontendGeneratedDir, TaskGenerateTsFiles_.TSCONFIG_JSON),
-                              nodeInfo.buildDirJsonPackageFile)
+                outputs.dir(nodeInfo.frontendGeneratedDir)
+                outputs.files(File(nodeInfo.buildDir, "tsconfig.json"))
+                outputs.files(File(nodeInfo.buildDir, "types.d.ts"))
 
                 doLast {
                     compiler.generateWebComponents()
@@ -288,26 +321,26 @@ class Vaadin : Plugin<Project> {
             }
 
             prepareJsonFiles.apply {
-                this.enabled = canRun
+                this.enabled = shouldRun || isMyTaskAStartDependency()
+                didRun = didRun || this.enabled
                 if (isExplicitRun) {
                     outputs.upToDateWhen { false }
                 }
 
-                inputs.files(nodeInfo.jsonPackageFile)
+                inputs.files(nodeInfo.jsonPackageFile,
+                             nodeInfo.jsonPackageLockFile)
+
                 outputs.files(nodeInfo.buildDirJsonPackageFile,
                               nodeInfo.buildDirJsonPackageLockFile)
 
                 doLast {
-                    // createMissingPackageJson
-                    compiler.createMissingPackageJson()
-
-                    // prepareJsonFiles
                     compiler.prepareJsonFiles()
                 }
             }
 
             copyJarResources.apply {
-                this.enabled = canRun
+                this.enabled = shouldRun || isMyTaskAStartDependency()
+                didRun = didRun || this.enabled
                 if (isExplicitRun) {
                     outputs.upToDateWhen { false }
                 }
@@ -327,7 +360,8 @@ class Vaadin : Plugin<Project> {
             }
 
             copyLocalResources.apply {
-                this.enabled = canRun
+                this.enabled = shouldRun || isMyTaskAStartDependency()
+                didRun = didRun || this.enabled
                 if (isExplicitRun) {
                     outputs.upToDateWhen { false }
                 }
@@ -341,7 +375,10 @@ class Vaadin : Plugin<Project> {
             }
 
             createTokenFile.apply {
-                this.enabled = canRun
+                // default build DOES NOT have a token file.
+                // only build a tokenFile if it is EXPLICIT or DEFAULT
+                this.enabled = shouldRun || isMyTaskAStartDependency()
+                didRun = didRun || this.enabled
                 if (isExplicitRun) {
                     outputs.upToDateWhen { false }
                 }
@@ -354,7 +391,8 @@ class Vaadin : Plugin<Project> {
             }
 
             updateWebPack.apply {
-                this.enabled = canRun
+                this.enabled = shouldRun || isMyTaskAStartDependency()
+                didRun = didRun || this.enabled
                 if (isExplicitRun) {
                     outputs.upToDateWhen { false }
                 }
@@ -368,13 +406,15 @@ class Vaadin : Plugin<Project> {
             }
 
             enableImportsUpdate.apply {
-                this.enabled = canRun
+                this.enabled = shouldRun || isMyTaskAStartDependency()
+                didRun = didRun || this.enabled
                 if (isExplicitRun) {
                     outputs.upToDateWhen { false }
                 }
 
                 outputs.files(nodeInfo.flowImportFile,
                               nodeInfo.flowFallbackImportFile)
+
                 doLast {
                     compiler.enableImportsUpdate()
                 }
@@ -395,7 +435,8 @@ class Vaadin : Plugin<Project> {
             //         OR.. we modify the bytecode ON COMPILE, so that a "run" would always include the modified jar
             // or we just include our own version
             generateWebPack.apply {
-                this.enabled = canRun
+                this.enabled = shouldRun || isMyTaskAStartDependency()
+                didRun = didRun || this.enabled
                 if (isExplicitRun) {
                     outputs.upToDateWhen { false }
                 }
@@ -413,7 +454,7 @@ class Vaadin : Plugin<Project> {
             }
 
             shutdownTask.apply {
-                this.enabled = canRun
+                this.enabled = didRun
             }
         }
     }
@@ -424,12 +465,12 @@ class Vaadin : Plugin<Project> {
     // NOTE: we want to discover if the "task to look for" is a dependency of one of the startup tasks
     private fun Task.isMyTaskAStartDependency(): Boolean {
         val taskToLookFor: Task = this
-        val debug = config.debug
+        val debug = config.debugGradle
 
         val allTasksNames = allTasks(this.project)
 
         val taskToLookForName = buildName(taskToLookFor)
-        if (debug) println("\tLooking for: $taskToLookForName")
+        if (debug) println("\n\tLooking for: $taskToLookForName")
 
         val taskList = LinkedList<Any>()
 
@@ -460,7 +501,6 @@ class Vaadin : Plugin<Project> {
         while (taskList.isNotEmpty()) {
             when (val task = taskList.removeFirst()) {
                 is Array<*> -> {
-                    if (debug) println("\t\t$task :: ${task.javaClass}")
                     task.forEach {
                         if (it != null) {
                             taskList.add(it)
@@ -468,21 +508,17 @@ class Vaadin : Plugin<Project> {
                     }
                 }
                 is TaskCollection<*> -> {
-                    if (debug) println("\t\t$task :: ${task.javaClass}")
                     task.forEach {
                         taskList.add(it)
                     }
                 }
                 is TaskProvider<*> -> {
-                    if (debug) println("\t\t$task :: ${task.javaClass}")
                     taskList.add(task.get())
                 }
                 is ConfigurableFileCollection -> {
                     // do nothing. it's a file collection
-                    if (debug) println("\t\t$task :: ${task.javaClass}")
                 }
                 is String -> {
-                    if (debug) println("\t\t$task :: ${task.javaClass}")
                     if (!task.startsWith(":")) {
                         taskList.add(task.startColon())
                     } else {
@@ -502,10 +538,9 @@ class Vaadin : Plugin<Project> {
                     }
                 }
                 is Task -> {
-                    if (debug) println("\t\t$task :: ${task.javaClass}")
                     // THIS DOES THE ACTUAL WORK TO SEE IF WE ARE THE TASK WE ARE LOOKING FOR
                     val taskName1 = buildName(task)
-                    if (debug) println("1\t\t$taskName1")
+                    if (debug) println("\t\t$taskName1")
 
                     if (taskName1 == taskToLookForName) {
                         if (debug) println("\t\tFound task: $taskToLookForName")
