@@ -90,7 +90,7 @@ class JsonPackageTools {
                         updateJsonValue(jsonObject, destObject, origKey, origValue)
                     }
 
-//                    println("o-$key : $destObject")
+//                    println("o-'$key' : $destObject")
                     dest.put(key, destObject)
                 }
                 JsonType.ARRAY  -> {
