@@ -121,6 +121,15 @@ class VaadinCompiler(val project: Project) {
 
     // dev
     fun prepareJsonFiles() {
+        // also copy over lock file!
+        if (nodeInfo.jsonPackageLockFile.canRead()) {
+            println("\tCopying json-lock into generated json-lock.")
+
+            // we CANNOT merge the lock-file, because, there is a required json key that is "", and this breaks when writing the output!!!
+            nodeInfo.jsonPackageLockFile.copyTo(nodeInfo.buildDirJsonPackageLockFile, true)
+
+        }
+
         // createMissingPackageJson
         TaskCreatePackageJson_.execute(nodeInfo)
 
@@ -150,18 +159,6 @@ class VaadinCompiler(val project: Project) {
         JsonPackageTools.addDependency(vaadinDevDeps, "webpack-bundle-analyzer", "4.5.0")
 
         JsonPackageTools.writeJson(nodeInfo.buildDirJsonPackageFile, genJson)
-
-
-        // also copy/move over lock file!
-        if (nodeInfo.jsonPackageLockFile.canRead()) {
-            println("\tMerging original json-lock into generated json-lock.")
-
-            val origJsonLock = Util.getJsonFileContent(nodeInfo.jsonPackageLockFile)
-            val genJsonLock = Util.getJsonFileContent(nodeInfo.buildDirJsonPackageLockFile)
-
-            JsonPackageTools.mergeJson(origJsonLock, genJsonLock)
-            JsonPackageTools.writeJson(nodeInfo.buildDirJsonPackageLockFile, genJsonLock)
-        }
 
 
         TaskRunNpmInstall_.execute(customClassFinder, nodeInfo, packageUpdater)
