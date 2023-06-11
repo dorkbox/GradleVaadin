@@ -89,8 +89,10 @@ dependencies {
     // Uber-fast, ultra-lightweight Java classpath and module path scanner
     implementation("io.github.classgraph:classgraph:4.8.160")
 
-    //  implementation("com.vaadin:vaadin:${Extras.vaadinVer}") // NOTE: uncomment for testing ONLY
+    // implementation("com.vaadin:vaadin:${Extras.vaadinVer}") // NOTE: uncomment for testing ONLY
     implementation("com.vaadin:flow-server:${Extras.vaadinFlowVer}")
+    implementation("com.vaadin.external.gwt:gwt-elemental:2.8.2.vaadin2")
+
 
     // this is used to announce the version of vaadin to use with the plugin
     implementation("com.dorkbox:VaadinUndertow:${Extras.vaadinUndertowVer}")
