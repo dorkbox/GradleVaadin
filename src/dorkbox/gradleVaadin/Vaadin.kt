@@ -179,6 +179,28 @@ class Vaadin : Plugin<Project> {
         return tasks
     }
 
+    @Volatile
+    private var startTasks: List<String>? = null
+    private fun startTasks(project: Project): List<String> {
+        val debug = config.debugGradle
+        var tasks = startTasks
+
+        if (tasks == null) {
+            tasks = project.gradle.startParameter.taskNames
+            println("\tStartup tasks:")
+            if (debug) {
+                tasks.forEach {
+                    println("\t\t$it")
+                }
+            }
+
+            this.startTasks = tasks
+        }
+
+        return tasks as List<String>
+    }
+
+
     override fun apply(project: Project) {
         // https://discuss.gradle.org/t/can-a-plugin-itself-add-buildscript-dependencies-and-then-apply-a-plugin/25039/4
         project.applyId("java")
@@ -465,9 +487,11 @@ class Vaadin : Plugin<Project> {
     // NOTE: we want to discover if the "task to look for" is a dependency of one of the startup tasks
     private fun Task.isMyTaskAStartDependency(): Boolean {
         val taskToLookFor: Task = this
-        val debug = config.debugGradle
+        val debug = config.debug
+        val debugDetails = config.debugGradle
 
         val allTasksNames = allTasks(this.project)
+        val startTasks = startTasks(this.project)
 
         val taskToLookForName = buildName(taskToLookFor)
         if (debug) println("\n\tLooking for: $taskToLookForName")
@@ -475,7 +499,7 @@ class Vaadin : Plugin<Project> {
         val taskList = LinkedList<Any>()
 
         // get the starting tasks
-        this.project.gradle.startParameter.taskNames.forEach { startTaskNameOrig ->
+        startTasks.forEach { startTaskNameOrig ->
             val startTaskName = startTaskNameOrig.startColon()
 
             if (taskToLookForName == startTaskName) {
@@ -483,15 +507,22 @@ class Vaadin : Plugin<Project> {
                 return true
             }
 
-            if (debug) println("\tStart Parameters: $startTaskName")
+            // gradle DOES NOT prepend the project name to the start task when running a task from a subproject
+            val startTaskNameWithProject = buildName(this.project) + startTaskName
+            if (taskToLookForName == startTaskNameWithProject) {
+                if (debug) println("\t\tFound task: $taskToLookForName")
+                return true
+            }
+
+
             var task = allTasksNames[startTaskName]
             if (task == null) {
                 // MAYBE it's the project parent class? gradle + intellij is weird.
-                task = allTasksNames[buildName(this) + startTaskName]
+                task = allTasksNames[buildName(this.project) + startTaskName]
             }
 
             if (task == null) {
-                if (debug) println("\tUnable to evaluate start task: $startTaskNameOrig")
+                if (debugDetails) println("\tUnable to evaluate start task: $startTaskNameOrig")
                 return false
             }
 
@@ -522,7 +553,7 @@ class Vaadin : Plugin<Project> {
                     if (!task.startsWith(":")) {
                         taskList.add(task.startColon())
                     } else {
-                        if (debug) println("\t\t${task}")
+                        if (debugDetails) println("\t\t${task}")
 
                         if (task == taskToLookForName) {
                             if (debug) println("\t\tFound task: $taskToLookForName")
@@ -533,14 +564,14 @@ class Vaadin : Plugin<Project> {
                         if (tsk != null) {
                             taskList.add(tsk)
                         } else {
-                            if (debug) println("Unable to find task for: $task")
+                            if (debugDetails) println("Unable to find task for: $task")
                         }
                     }
                 }
                 is Task -> {
                     // THIS DOES THE ACTUAL WORK TO SEE IF WE ARE THE TASK WE ARE LOOKING FOR
                     val taskName1 = buildName(task)
-                    if (debug) println("\t\t$taskName1")
+                    if (debugDetails) println("\t\t$taskName1")
 
                     if (taskName1 == taskToLookForName) {
                         if (debug) println("\t\tFound task: $taskToLookForName")
@@ -561,26 +592,26 @@ class Vaadin : Plugin<Project> {
                                         taskList.add(tsk)
                                     } else {
                                         // no idea what to do
-                                        if (debug) println("Cannot find task: $d1")
+                                        if (debugDetails) println("Cannot find task: $d1")
                                     }
                                 } else if (d1 != null) {
-                                    if (debug) println("\t\t$d1 ${d1.javaClass}")
+                                    if (debugDetails) println("\t\t$d1 ${d1.javaClass}")
                                     taskList.add(d1)
                                 }
                             }
                         } else {
-                            if (debug) println("\t\t$dep ${dep.javaClass}")
+                            if (debugDetails) println("\t\t$dep ${dep.javaClass}")
                             taskList.add(dep)
                         }
                     }
                 }
                 else -> {
-                    if (debug) println("??:\t\t$task :: ${task?.javaClass}")
+                    if (debugDetails) println("??:\t\t$task :: ${task?.javaClass}")
                 }
             }
         }
 
-        if (debug) println("task $taskToLookForName not found")
+        if (debug) println("\t\ttask $taskToLookForName not found")
         return false
     }
 
