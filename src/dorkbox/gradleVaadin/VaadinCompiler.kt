@@ -140,7 +140,7 @@ class VaadinCompiler(val project: Project) {
         val packageUpdater = TaskUpdatePackages_.execute(customClassFinder, frontendDependencies, nodeInfo)
 
         // we want to also MERGE in our saved (non-generated) json file contents to the generated file
-        println("\tMerging original json into generated json.")
+        println("\tMerging original json into generated json")
 
         val origJson = Util.getJsonFileContent(nodeInfo.jsonPackageFile)
         val genJson = Util.getJsonFileContent(nodeInfo.buildDirJsonPackageFile)
@@ -157,9 +157,13 @@ class VaadinCompiler(val project: Project) {
         JsonPackageTools.addDependency(devDeps, "terser-webpack-plugin", "4.2.3")
         JsonPackageTools.addDependency(devDeps, "webpack-bundle-analyzer", "4.5.0")
 
+        val logEnabled = Util.logger.enable
+
+        Util.logger.enable = false
         JsonPackageTools.addDependency(vaadinDevDeps, "core-js", "3.19.3")
         JsonPackageTools.addDependency(vaadinDevDeps, "terser-webpack-plugin", "4.2.3")
         JsonPackageTools.addDependency(vaadinDevDeps, "webpack-bundle-analyzer", "4.5.0")
+        Util.logger.enable = logEnabled
 
         JsonPackageTools.writeJson(nodeInfo.buildDirJsonPackageFile, genJson)
 

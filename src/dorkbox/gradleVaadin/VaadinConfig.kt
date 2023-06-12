@@ -203,7 +203,7 @@ open class VaadinConfig(private val project: Project): java.io.Serializable {
     var workDir = project.buildDir
 
 
-    internal val vaadinCompiler by lazy {  VaadinCompiler(project) }
+    internal val vaadinCompiler by lazy { VaadinCompiler(project) }
 
 
 

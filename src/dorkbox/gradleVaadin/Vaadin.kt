@@ -187,8 +187,8 @@ class Vaadin : Plugin<Project> {
 
         if (tasks == null) {
             tasks = project.gradle.startParameter.taskNames
-            println("\tStartup tasks:")
             if (debug) {
+                println("\tStartup tasks:")
                 tasks.forEach {
                     println("\t\t$it")
                 }
@@ -494,7 +494,7 @@ class Vaadin : Plugin<Project> {
         val startTasks = startTasks(this.project)
 
         val taskToLookForName = buildName(taskToLookFor)
-        if (debug) println("\n\tLooking for: $taskToLookForName")
+        if (debug) println("\tLooking for: $taskToLookForName")
 
         val taskList = LinkedList<Any>()
 
@@ -550,28 +550,20 @@ class Vaadin : Plugin<Project> {
                     // do nothing. it's a file collection
                 }
                 is String -> {
-                    if (!task.startsWith(":")) {
-                        taskList.add(task.startColon())
+                    val tskName = task.startColon()
+                    if (debugDetails) println("\t\t0 $tskName")
+
+                    val tsk = allTasksNames[tskName]
+                    if (tsk != null) {
+                        taskList.add(tsk)
                     } else {
-                        if (debugDetails) println("\t\t${task}")
-
-                        if (task == taskToLookForName) {
-                            if (debug) println("\t\tFound task: $taskToLookForName")
-                            return true
-                        }
-
-                        val tsk = allTasksNames[task]
-                        if (tsk != null) {
-                            taskList.add(tsk)
-                        } else {
-                            if (debugDetails) println("Unable to find task for: $task")
-                        }
+                        if (debugDetails) println("Unable to find task for: $task")
                     }
                 }
                 is Task -> {
                     // THIS DOES THE ACTUAL WORK TO SEE IF WE ARE THE TASK WE ARE LOOKING FOR
                     val taskName1 = buildName(task)
-                    if (debugDetails) println("\t\t$taskName1")
+                    if (debugDetails) println("\t\t1 $taskName1")
 
                     if (taskName1 == taskToLookForName) {
                         if (debug) println("\t\tFound task: $taskToLookForName")
@@ -611,7 +603,7 @@ class Vaadin : Plugin<Project> {
             }
         }
 
-        if (debug) println("\t\ttask $taskToLookForName not found")
+        if (debug) println("\tTask $taskToLookForName not found")
         return false
     }
 
