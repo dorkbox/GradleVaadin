@@ -130,7 +130,6 @@ class VaadinCompiler(val project: Project) {
 
             // we CANNOT merge the lock-file, because, there is a required json key that is "", and this breaks when writing the output!!!
             nodeInfo.jsonPackageLockFile.copyTo(nodeInfo.buildDirJsonPackageLockFile, true)
-
         }
 
         // createMissingPackageJson
