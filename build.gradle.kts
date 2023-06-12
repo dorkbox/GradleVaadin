@@ -22,7 +22,7 @@ plugins {
     id("com.gradle.plugin-publish") version "1.2.0"
 
     id("com.dorkbox.GradleUtils") version "3.17"
-    id("com.dorkbox.Licensing") version "2.22"
+    id("com.dorkbox.Licensing") version "2.24"
     id("com.dorkbox.VersionUpdate") version "2.8"
 
     kotlin("jvm") version "1.8.0"
@@ -43,7 +43,7 @@ object Extras {
     const val url = "https://git.dorkbox.com/dorkbox/GradleVaadin"
     val tags = listOf("vaadin", "undertow")
 
-    const val vaadinUndertowVer = "14.9.2"
+    const val vaadinUndertowVer = "14.10"
 
     // These MUST be in lock-step with what the VaadinUndertow launcher defines, otherwise horrific errors can occur.
     const val vaadinVer = "14.10.1"
