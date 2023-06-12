@@ -53,7 +53,10 @@ class VaadinCompiler(val project: Project) {
             }
     }
 
+    @Volatile
+    internal var classFinderInitialized = false
     val customClassFinder by lazy {
+        classFinderInitialized = true
         // we want to search java + kotlin classes!
         val sourceSets = project.extensions.getByName("sourceSets") as SourceSetContainer
 
@@ -323,7 +326,10 @@ class VaadinCompiler(val project: Project) {
     }
 
     fun finish() {
-        println("\tShutting down the Vaadin Compiler")
-        customClassFinder.finish()
+        // we don't always have the classfinder initialized, so only close it if we've started it!
+        if (classFinderInitialized) {
+            println("\tShutting down the Vaadin Compiler")
+            customClassFinder.finish()
+        }
     }
 }
