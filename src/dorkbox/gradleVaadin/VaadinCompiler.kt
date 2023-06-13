@@ -35,7 +35,7 @@ class VaadinCompiler(val project: Project) {
         /**
          * Gets the version number.
          */
-        const val version = "14.10"
+        const val version = "14.10.1"
     }
 
     private val config = VaadinConfig[project]

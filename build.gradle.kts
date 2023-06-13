@@ -34,7 +34,7 @@ object Extras {
     const val group = "com.dorkbox"
 
     // the version here ROUGHLY tracks the major/minor version of vaadin!
-    const val version = "14.10"
+    const val version = "14.10.1"
 
     // set as project.ext
     const val name = "Gradle Vaadin"
