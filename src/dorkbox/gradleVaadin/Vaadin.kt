@@ -303,12 +303,12 @@ class Vaadin : Plugin<Project> {
             // The taskGraph is SUPPOSED to contain ONLY the task execution graph. HOWEVER... what it returns is NOT ACCURATE. There are
             // tasks specified in this graph that ARE NOT dependencies of the start task(s).
             // The inconsistencies within gradle are very annoying!
-//            if (config.debugGradle) {
+            if (config.debugGradle) {
                 println("\tTask Graph:")
                 taskGraph.allTasks.forEach {
                     println("\t\t$it")
                 }
-//            }
+            }
 
             // NOTE! our class-scanner scans COMPILED CLASSES, so it is required to depend (at some point) on class compilation!
             val compiler = VaadinConfig[project].vaadinCompiler
