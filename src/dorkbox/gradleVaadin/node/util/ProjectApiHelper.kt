@@ -10,7 +10,6 @@ import org.gradle.api.tasks.WorkResult
 import org.gradle.process.ExecOperations
 import org.gradle.process.ExecResult
 import org.gradle.process.ExecSpec
-import org.gradle.util.GradleVersion
 import java.io.File
 import javax.inject.Inject
 
@@ -18,15 +17,7 @@ interface ProjectApiHelper {
     companion object {
         @JvmStatic
         fun newInstance(project: Project): ProjectApiHelper {
-            return if (enableConfigurationCache()) {
-                project.objects.newInstance(DefaultProjectApiHelper::class.java)
-            } else {
-                LegacyProjectApiHelper(project)
-            }
-        }
-
-        private fun enableConfigurationCache(): Boolean {
-            return GradleVersion.current() >= GradleVersion.version("6.6")
+            return project.objects.newInstance(DefaultProjectApiHelper::class.java)
         }
     }
 
@@ -71,32 +62,5 @@ internal open class DefaultProjectApiHelper @Inject constructor(
 
     override fun exec(action: Action<ExecSpec>): ExecResult {
         return execOperations.exec(action)
-    }
-}
-
-internal open class LegacyProjectApiHelper(private val project: Project) : ProjectApiHelper {
-
-    override fun fileTree(directory: Directory): ConfigurableFileTree {
-        return project.fileTree(directory)
-    }
-
-    override fun zipTree(tarPath: File): FileTree {
-        return project.zipTree(tarPath)
-    }
-
-    override fun tarTree(tarPath: File): FileTree {
-        return project.tarTree(tarPath)
-    }
-
-    override fun copy(action: Action<CopySpec>): WorkResult {
-        return project.copy(action)
-    }
-
-    override fun delete(action: Action<DeleteSpec>): WorkResult {
-        return project.delete(action)
-    }
-
-    override fun exec(action: Action<ExecSpec>): ExecResult {
-        return project.exec(action)
     }
 }

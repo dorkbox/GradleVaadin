@@ -19,13 +19,13 @@ gradle.startParameter.showStacktrace = ShowStacktrace.ALWAYS_FULL   // always sh
 plugins {
     `java-gradle-plugin`
 
-    id("com.gradle.plugin-publish") version "1.2.0"
+    id("com.gradle.plugin-publish") version "2.0.0"
 
-    id("com.dorkbox.GradleUtils") version "3.17"
-    id("com.dorkbox.Licensing") version "2.24"
-    id("com.dorkbox.VersionUpdate") version "2.8"
+    id("com.dorkbox.GradleUtils") version "4.4"
+    id("com.dorkbox.Licensing") version "3.1"
+    id("com.dorkbox.VersionUpdate") version "3.0"
 
-    kotlin("jvm") version "1.8.0"
+    kotlin("jvm") version "2.3.0"
 }
 
 object Extras {
@@ -57,7 +57,7 @@ object Extras {
 ///////////////////////////////
 GradleUtils.load("$projectDir/../../gradle.properties", Extras)
 GradleUtils.defaults()
-GradleUtils.compileConfiguration(JavaVersion.VERSION_11)
+GradleUtils.compileConfiguration(JavaVersion.VERSION_25)
 
 licensing {
     license(License.APACHE_2) {
@@ -79,15 +79,19 @@ sourceSets {
     }
 }
 
+repositories {
+    gradlePluginPortal()
+}
+
 dependencies {
     // the kotlin version is taken from the plugin, so it is not necessary to set it here
     compileOnly("org.jetbrains.kotlin:kotlin-gradle-plugin")
 
     implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.1")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
 
     // Uber-fast, ultra-lightweight Java classpath and module path scanner
-    implementation("io.github.classgraph:classgraph:4.8.160")
+    implementation("io.github.classgraph:classgraph:4.8.184")
 
     // implementation("com.vaadin:vaadin:${Extras.vaadinVer}") // NOTE: uncomment for testing ONLY
     implementation("com.vaadin:flow-server:${Extras.vaadinFlowVer}")
@@ -96,8 +100,10 @@ dependencies {
 
     // this is used to announce the version of vaadin to use with the plugin
     implementation("com.dorkbox:VaadinUndertow:${Extras.vaadinUndertowVer}")
-    implementation("com.dorkbox:Executor:3.13")
+    implementation("com.dorkbox:Executor:3.14")
     implementation("com.dorkbox:Version:3.1")
+
+    api("com.dorkbox.GradleUtils:com.dorkbox.GradleUtils.gradle.plugin:4.4")
 }
 
 tasks.jar.get().apply {
@@ -128,7 +134,7 @@ gradlePlugin {
     vcsUrl.set(Extras.url)
 
     plugins {
-        create("GradleVaadin") {
+        register("GradleVaadin") {
             id = "${Extras.group}.${Extras.id}"
             implementationClass = "dorkbox.gradleVaadin.Vaadin"
             displayName = Extras.name

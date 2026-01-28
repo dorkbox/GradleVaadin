@@ -2,18 +2,9 @@ package dorkbox.gradleVaadin
 
 import com.vaadin.flow.server.Constants
 import com.vaadin.flow.server.InitParameters
-import com.vaadin.flow.server.frontend.FrontendWebComponentGenerator
-import com.vaadin.flow.server.frontend.TaskCopyLocalFrontendFiles_
-import com.vaadin.flow.server.frontend.TaskCreatePackageJson_
-import com.vaadin.flow.server.frontend.TaskGenerateTsFiles_
-import com.vaadin.flow.server.frontend.TaskInstallWebpackPlugins_
-import com.vaadin.flow.server.frontend.TaskRunNpmInstall_
-import com.vaadin.flow.server.frontend.TaskUpdateImports_
-import com.vaadin.flow.server.frontend.TaskUpdatePackages_
-import com.vaadin.flow.server.frontend.TaskUpdateThemeImport_
-import com.vaadin.flow.server.frontend.TaskUpdateWebpack_
-import com.vaadin.flow.server.frontend.Util
+import com.vaadin.flow.server.frontend.*
 import com.vaadin.flow.server.frontend.scanner.FrontendDependencies
+import dorkbox.gradle.resolveRuntimeDependencies
 import dorkbox.gradleVaadin.node.NodeInfo
 import elemental.json.Json
 import elemental.json.JsonObject
@@ -47,7 +38,7 @@ class VaadinCompiler(val project: Project) {
     // this cannot be resolved until INSIDE a doLast {} callback, as moshiX will break otherwise!
     // dependencies cannot be modified after this resolves them
     val projectDependencies by lazy {
-        Vaadin.resolveRuntimeDependencies(project).dependencies
+        project.resolveRuntimeDependencies().dependencies
             .flatMap { dep ->
                 dep.artifacts.map { artifact -> artifact.file }
             }
