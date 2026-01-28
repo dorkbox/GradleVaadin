@@ -17,7 +17,6 @@ package dorkbox.gradleVaadin
 
 import com.vaadin.flow.server.frontend.TaskCopyFrontendFiles_
 import com.vaadin.flow.server.frontend.Util
-import dorkbox.gradleVaadin.node.deps.DependencyScanner
 import dorkbox.gradleVaadin.node.npm.proxy.ProxySettings
 import dorkbox.gradleVaadin.node.npm.task.NpmInstallTask
 import dorkbox.gradleVaadin.node.npm.task.NpmSetupTask
@@ -50,36 +49,6 @@ class Vaadin : Plugin<Project> {
         internal const val SHUTDOWN_TASK = "shutdownCompiler"
         internal const val compileDevName = "vaadinDevelopment"
         internal const val compileProdName = "vaadinProduction"
-
-        /**
-         * Recursively resolves all child dependencies of the project
-         *
-         * THIS MUST BE IN "afterEvaluate" or run from a specific task.
-         */
-        fun resolveAllDependencies(project: Project): List<DependencyScanner.DependencyData> {
-            // NOTE: we cannot createTree("compile") and createTree("runtime") using the same exitingNames and expect correct results.
-            // This is because a dependency might exist for compile and runtime, but have different children, therefore, the list
-            // will be incomplete
-
-            // there will be DUPLICATES! (we don't care about children or hierarchy, so we remove the dupes)
-            return (DependencyScanner.scan(project, "compileClasspath") +
-                    DependencyScanner.scan(project, "runtimeClasspath")
-                    ).toSet().toList()
-        }
-
-        /**
-         * Recursively resolves all child compile dependencies of the project
-         *
-         * THIS MUST BE IN "afterEvaluate" or run from a specific task.
-         */
-        fun resolveRuntimeDependencies(project: Project): DependencyScanner.ProjectDependencies {
-            val projectDependencies = mutableListOf<DependencyScanner.Dependency>()
-            val existingNames = mutableMapOf<String, DependencyScanner.Dependency>()
-
-            DependencyScanner.createTree(project, "runtimeClasspath", projectDependencies, existingNames)
-
-            return DependencyScanner.ProjectDependencies(projectDependencies, existingNames.map { it.value })
-        }
 
         private fun String.startColon(): String {
             return if (this.startsWith(":")) {
